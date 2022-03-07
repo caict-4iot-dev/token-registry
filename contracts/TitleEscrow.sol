@@ -9,15 +9,14 @@ import "./interfaces/ITitleEscrow.sol";
 import "./interfaces/ITradeTrustERC721.sol";
 
 contract TitleEscrow is ITitleEscrow, Initializable, Context {
-  address public beneficiary;
-  address public holder;
+  address public override beneficiary;
+  address public override holder;
 
-  address public nominatedBeneficiary;
-  address public nominatedHolder;
+  address public override nominatedBeneficiary;
+  address public override nominatedHolder;
 
-  address public tokenRegistry;
-  uint256 public tokenId;
-  //  ITitleEscrow.StatusTypes public override status;
+  address public override tokenRegistry;
+  uint256 public override tokenId;
 
   modifier onlyBeneficiary() {
     require(_msgSender() == beneficiary, "TitleEscrow: Caller is not beneficiary");
@@ -54,7 +53,7 @@ contract TitleEscrow is ITitleEscrow, Initializable, Context {
 
   function onERC721Received(
     address, /* operator */
-    address from,
+    address /* from */,
     uint256 _tokenId,
     bytes calldata /* data */
   ) external override returns (bytes4) {
@@ -64,29 +63,49 @@ contract TitleEscrow is ITitleEscrow, Initializable, Context {
       "TitleEscrow: Only tokens from predefined token registry can be accepted"
     );
 
-    emit TokenReceived(tokenRegistry, from, _tokenId);
+    emit TokenReceived(tokenRegistry, _tokenId);
     return bytes4(keccak256("onERC721Received(address,address,uint256,bytes)"));
   }
 
-  function nominateBeneficiary(address _nominatedBeneficiary) external onlyBeneficiary whenHoldingToken whenNotPaused {
+  function nominateBeneficiary(address _nominatedBeneficiary)
+    external
+    override
+    onlyBeneficiary
+    whenHoldingToken
+    whenNotPaused
+  {
     nominatedBeneficiary = _nominatedBeneficiary;
+
+    emit BeneficiaryNomination(tokenRegistry, tokenId, nominatedBeneficiary, msg.sender);
   }
 
-  function nominateHolder(address _nominatedHolder) external onlyBeneficiary whenHoldingToken whenNotPaused {
+  function nominateHolder(address _nominatedHolder) external override onlyBeneficiary whenHoldingToken whenNotPaused {
     nominatedHolder = _nominatedHolder;
+
+    emit HolderNomination(tokenRegistry, tokenId, nominatedHolder, msg.sender);
   }
 
   function nominate(address _nominatedBeneficiary, address _nominatedHolder)
     external
+    override
     onlyBeneficiary
     whenHoldingToken
     whenNotPaused
   {
     nominatedBeneficiary = _nominatedBeneficiary;
     nominatedHolder = _nominatedHolder;
+
+    emit BeneficiaryNomination(tokenRegistry, tokenId, nominatedBeneficiary, msg.sender);
+    emit HolderNomination(tokenRegistry, tokenId, nominatedHolder, msg.sender);
   }
 
-  function endorseBeneficiary(address _nominatedBeneficiary) external onlyHolder whenHoldingToken whenNotPaused {
+  function endorseBeneficiary(address _nominatedBeneficiary)
+    external
+    override
+    onlyHolder
+    whenHoldingToken
+    whenNotPaused
+  {
     require(_nominatedBeneficiary != address(0), "TitleEscrow: Cannot endorse address");
     require(
       beneficiary == holder || (nominatedBeneficiary == _nominatedBeneficiary),
@@ -94,9 +113,11 @@ contract TitleEscrow is ITitleEscrow, Initializable, Context {
     );
     nominatedBeneficiary = address(0);
     beneficiary = _nominatedBeneficiary;
+
+    emit BeneficiaryEndorsement(tokenRegistry, tokenId, beneficiary, msg.sender);
   }
 
-  function endorseHolder(address _nominatedHolder) external onlyHolder whenHoldingToken whenNotPaused {
+  function endorseHolder(address _nominatedHolder) external override onlyHolder whenHoldingToken whenNotPaused {
     if (_nominatedHolder != address(0)) {
       require(
         beneficiary == holder || (nominatedHolder == _nominatedHolder),
@@ -105,10 +126,13 @@ contract TitleEscrow is ITitleEscrow, Initializable, Context {
     }
     nominatedHolder = address(0);
     holder = _nominatedHolder;
+
+    emit HolderEndorsement(tokenRegistry, tokenId, holder, msg.sender);
   }
 
   function endorse(address _nominatedBeneficiary, address _nominatedHolder)
     external
+    override
     onlyHolder
     whenHoldingToken
     whenNotPaused
@@ -125,20 +149,27 @@ contract TitleEscrow is ITitleEscrow, Initializable, Context {
     _resetNominees();
     beneficiary = nominatedBeneficiary;
     holder = nominatedHolder;
+
+    emit BeneficiaryEndorsement(tokenRegistry, tokenId, beneficiary, msg.sender);
+    emit HolderEndorsement(tokenRegistry, tokenId, holder, msg.sender);
   }
 
-  function surrender() external onlyBeneficiary onlyHolder whenHoldingToken whenNotPaused {
+  function surrender() external override onlyBeneficiary onlyHolder whenHoldingToken whenNotPaused {
     _resetNominees();
     ITradeTrustERC721(tokenRegistry).safeTransferFrom(address(this), tokenRegistry, tokenId);
+
+    emit Surrender(tokenRegistry, tokenId, beneficiary, holder);
   }
 
-  function shred() external whenNotPaused {
+  function shred() external override whenNotPaused {
     require(!_isHoldingToken(), "TitleEscrow: Not surrendered yet");
     require(_msgSender() == tokenRegistry, "TitleEscrow: Caller is not registry");
     selfdestruct(payable(tx.origin));
+
+    emit Shred(tokenRegistry, tokenId);
   }
 
-  function isHoldingToken() external view returns (bool) {
+  function isHoldingToken() external view override returns (bool) {
     return _isHoldingToken();
   }
 

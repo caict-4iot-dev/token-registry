@@ -9,7 +9,6 @@ import "./access/RegistryAccess.sol";
 import "./interfaces/ITitleEscrow.sol";
 import "./interfaces/ITradeTrustERC721.sol";
 import "./interfaces/ITitleEscrowFactory.sol";
-import "./TitleEscrow.sol";
 
 contract TradeTrustERC721 is ITradeTrustERC721, RegistryAccess, Pausable, ERC721 {
   using Address for address;
@@ -20,6 +19,7 @@ contract TradeTrustERC721 is ITradeTrustERC721, RegistryAccess, Pausable, ERC721
 
   address internal constant BURN_ADDRESS = 0x000000000000000000000000000000000000dEaD;
 
+  uint256 public birthBlock;
   ITitleEscrowFactory public override titleEscrowFactory;
 
   // Mapping from token ID to previously surrendered title escrow address
@@ -30,6 +30,7 @@ contract TradeTrustERC721 is ITradeTrustERC721, RegistryAccess, Pausable, ERC721
     string memory symbol,
     address _titleEscrowFactory
   ) ERC721(name, symbol) {
+    birthBlock = block.number;
     titleEscrowFactory = ITitleEscrowFactory(_titleEscrowFactory);
   }
 
@@ -72,7 +73,7 @@ contract TradeTrustERC721 is ITradeTrustERC721, RegistryAccess, Pausable, ERC721
   function destroyToken(uint256 tokenId) external override whenNotPaused onlyAccepter {
     address escrowAddress = titleEscrowFactory.getAddress(address(this), tokenId);
 
-    TitleEscrow(escrowAddress).shred();
+    ITitleEscrow(escrowAddress).shred();
 
     // Burning token to 0xdead instead to show a differentiate state as address(0) is used for unminted tokens
     _registryTransferTo(BURN_ADDRESS, tokenId);

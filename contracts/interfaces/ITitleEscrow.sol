@@ -5,12 +5,32 @@ import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 
 /// @title Title Escrow for Transferable Records
 interface ITitleEscrow is IERC721Receiver {
-  event TokenReceived(address indexed tokenRegistry, address indexed from, uint256 indexed tokenId);
-  event BeneficiaryNomination(address indexed tokenRegsitry, address indexed nominatedBeneficiary, address nominator);
-  event HolderNomination(address indexed tokenRegsitry, address indexed nominatedHolder, address nominator);
-  event BeneficiaryEndorsement(address indexed tokenRegsitry, address indexed endorsedBeneficiary, address endorser);
-  event HolderEndorsement(address indexed tokenRegsitry, address indexed endorsedHolder, address endorser);
-  event Surrender(address indexed tokenRegistry, uint256 indexed tokenId, address indexed beneficiaryAndHolder);
+  event TokenReceived(address indexed tokenRegistry, uint256 indexed tokenId);
+  event BeneficiaryNomination(
+    address indexed tokenRegistry,
+    uint256 indexed tokenId,
+    address indexed nominatedBeneficiary,
+    address nominator
+  );
+  event HolderNomination(
+    address indexed tokenRegistry,
+    uint256 indexed tokenId,
+    address indexed nominatedHolder,
+    address nominator
+  );
+  event BeneficiaryEndorsement(
+    address indexed tokenRegistry,
+    uint256 indexed tokenId,
+    address indexed endorsedBeneficiary,
+    address endorser
+  );
+  event HolderEndorsement(
+    address indexed tokenRegistry,
+    uint256 indexed tokenId,
+    address indexed endorsedHolder,
+    address endorser
+  );
+  event Surrender(address indexed tokenRegistry, uint256 indexed tokenId, address beneficiary, address holder);
   event Shred(address indexed tokenRegistry, uint256 indexed tokenId);
 
   function nominateBeneficiary(address _nominatedBeneficiary) external;
@@ -35,9 +55,9 @@ interface ITitleEscrow is IERC721Receiver {
 
   function tokenRegistry() external view returns (address);
 
-  function tokenId() external view returns (address);
+  function tokenId() external view returns (uint256);
 
-  function isHoldingToken() external;
+  function isHoldingToken() external returns (bool);
 
   function surrender() external;
 
