@@ -52,10 +52,10 @@ contract TitleEscrowCloneable is
   }
 
   function onERC721Received(
-    address operator,
+    address /* operator */,
     address from,
     uint256 tokenId,
-    bytes calldata data
+    bytes calldata /* data */
   ) external override returns (bytes4) {
     require(status == StatusTypes.Uninitialised, "TitleEscrow: Contract has been used before");
     require(
