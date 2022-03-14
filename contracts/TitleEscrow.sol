@@ -1,19 +1,14 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
-import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 import "@openzeppelin/contracts/utils/Context.sol";
-import "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 import "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
-import "./access/HasNamedBeneficiaryInitializable.sol";
-import "./access/HasHolderInitializable.sol";
+import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 import "./interfaces/ITitleEscrow.sol";
 import "./interfaces/ITradeTrustERC721.sol";
-import "./TitleEscrowFactory.sol";
 
-contract TitleEscrow is IERC721Receiver, Initializable, Context {
+contract TitleEscrow is ITitleEscrow, Initializable, Context {
   address public beneficiary;
   address public holder;
 
@@ -36,6 +31,12 @@ contract TitleEscrow is IERC721Receiver, Initializable, Context {
 
   modifier whenHoldingToken() {
     require(_isHoldingToken(), "TitleEscrow: Not holding token");
+    _;
+  }
+
+  modifier whenNotPaused() {
+    bool paused = Pausable(address(tokenRegistry)).paused();
+    require(!paused, "TitleEscrow: Token Registry is paused");
     _;
   }
 
@@ -63,24 +64,29 @@ contract TitleEscrow is IERC721Receiver, Initializable, Context {
       "TitleEscrow: Only tokens from predefined token registry can be accepted"
     );
 
-    //    emit TitleReceived(_msgSender(), from, _tokenId);
+    emit TokenReceived(tokenRegistry, from, _tokenId);
     return bytes4(keccak256("onERC721Received(address,address,uint256,bytes)"));
   }
 
-  function nominateBeneficiary(address _nominatedBeneficiary) external onlyBeneficiary whenHoldingToken {
+  function nominateBeneficiary(address _nominatedBeneficiary) external onlyBeneficiary whenHoldingToken whenNotPaused {
     nominatedBeneficiary = _nominatedBeneficiary;
   }
 
-  function nominateHolder(address _nominatedHolder) external onlyBeneficiary whenHoldingToken {
+  function nominateHolder(address _nominatedHolder) external onlyBeneficiary whenHoldingToken whenNotPaused {
     nominatedHolder = _nominatedHolder;
   }
 
-  function nominate(address _nominatedBeneficiary, address _nominatedHolder) external onlyBeneficiary whenHoldingToken {
+  function nominate(address _nominatedBeneficiary, address _nominatedHolder)
+    external
+    onlyBeneficiary
+    whenHoldingToken
+    whenNotPaused
+  {
     nominatedBeneficiary = _nominatedBeneficiary;
     nominatedHolder = _nominatedHolder;
   }
 
-  function endorseBeneficiary(address _nominatedBeneficiary) external onlyHolder whenHoldingToken {
+  function endorseBeneficiary(address _nominatedBeneficiary) external onlyHolder whenHoldingToken whenNotPaused {
     require(_nominatedBeneficiary != address(0), "TitleEscrow: Cannot endorse address");
     require(
       beneficiary == holder || (nominatedBeneficiary == _nominatedBeneficiary),
@@ -90,7 +96,7 @@ contract TitleEscrow is IERC721Receiver, Initializable, Context {
     beneficiary = _nominatedBeneficiary;
   }
 
-  function endorseHolder(address _nominatedHolder) external onlyHolder whenHoldingToken {
+  function endorseHolder(address _nominatedHolder) external onlyHolder whenHoldingToken whenNotPaused {
     if (_nominatedHolder != address(0)) {
       require(
         beneficiary == holder || (nominatedHolder == _nominatedHolder),
@@ -101,7 +107,12 @@ contract TitleEscrow is IERC721Receiver, Initializable, Context {
     holder = _nominatedHolder;
   }
 
-  function endorse(address _nominatedBeneficiary, address _nominatedHolder) external onlyHolder whenHoldingToken {
+  function endorse(address _nominatedBeneficiary, address _nominatedHolder)
+    external
+    onlyHolder
+    whenHoldingToken
+    whenNotPaused
+  {
     require(
       _nominatedBeneficiary != address(0) && _nominatedHolder != address(0),
       "TitleEscrow: Cannot endorse addresses"
@@ -116,12 +127,12 @@ contract TitleEscrow is IERC721Receiver, Initializable, Context {
     holder = nominatedHolder;
   }
 
-  function surrender() external onlyBeneficiary onlyHolder whenHoldingToken {
+  function surrender() external onlyBeneficiary onlyHolder whenHoldingToken whenNotPaused {
     _resetNominees();
     ITradeTrustERC721(tokenRegistry).safeTransferFrom(address(this), tokenRegistry, tokenId);
   }
 
-  function shred() external {
+  function shred() external whenNotPaused {
     require(!_isHoldingToken(), "TitleEscrow: Not surrendered yet");
     require(_msgSender() == tokenRegistry, "TitleEscrow: Caller is not registry");
     selfdestruct(payable(tx.origin));
