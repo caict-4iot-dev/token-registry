@@ -22,13 +22,7 @@ contract TitleEscrow is IERC721Receiver, Initializable, Context {
 
   address public tokenRegistry;
   uint256 public tokenId;
-//  ITitleEscrow.StatusTypes public override status;
-
-  address public factory;
-
-  constructor() {
-    factory = msg.sender;
-  }
+  //  ITitleEscrow.StatusTypes public override status;
 
   modifier onlyBeneficiary() {
     require(_msgSender() == beneficiary, "TitleEscrow: Caller is not beneficiary");
@@ -51,7 +45,6 @@ contract TitleEscrow is IERC721Receiver, Initializable, Context {
     address _holder,
     uint256 _tokenId
   ) public initializer {
-    require(msg.sender == factory, "TitleEscrow: Not allowed to initialize");
     tokenRegistry = _tokenRegistry;
     beneficiary = _beneficiary;
     holder = _holder;
@@ -70,7 +63,7 @@ contract TitleEscrow is IERC721Receiver, Initializable, Context {
       "TitleEscrow: Only tokens from predefined token registry can be accepted"
     );
 
-//    emit TitleReceived(_msgSender(), from, _tokenId);
+    //    emit TitleReceived(_msgSender(), from, _tokenId);
     return bytes4(keccak256("onERC721Received(address,address,uint256,bytes)"));
   }
 
