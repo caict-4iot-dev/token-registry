@@ -16,4 +16,6 @@ interface ITitleEscrowFactory {
     address beneficiary,
     address holder
   ) external returns (address);
+
+  function getAddress(address tokenRegistry, uint256 tokenId) external view returns (address);
 }

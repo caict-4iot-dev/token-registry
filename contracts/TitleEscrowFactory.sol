@@ -13,15 +13,21 @@ contract TitleEscrowFactory is ITitleEscrowFactory {
   }
 
   function create(
-    address tokenRegistry,
     address beneficiary,
-    address holder
+    address holder,
+    uint256 tokenId
   ) external override returns (address) {
-    address clone = Clones.clone(implementation);
-    TitleEscrowCloneable(clone).initialize(tokenRegistry, beneficiary, holder, address(this));
+    bytes32 salt = keccak256(abi.encodePacked(msg.sender, tokenId));
+    address titleEscrow = Clones.cloneDeterministic(implementation, salt);
+    TitleEscrowCloneable(titleEscrow).initialize(msg.sender, beneficiary, holder, tokenId);
 
-    emit TitleEscrowDeployed(address(clone), tokenRegistry, beneficiary, holder);
+    // TODO: Add tokenId to event
+    emit TitleEscrowDeployed(titleEscrow, msg.sender, beneficiary, holder);
 
-    return address(clone);
+    return titleEscrow;
+  }
+
+  function getAddress(address tokenRegistry, uint256 tokenId) external pure override returns (address) {
+    return Clones.predictDeterministicAddress(implementation, keccak256(abi.encodePacked(tokenRegistry, tokenId)));
   }
 }

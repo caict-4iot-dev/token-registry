@@ -9,6 +9,7 @@ import "./access/RegistryAccess.sol";
 import "./interfaces/ITitleEscrow.sol";
 import "./interfaces/ITradeTrustERC721.sol";
 import "./interfaces/ITitleEscrowFactory.sol";
+import "./TitleEscrow.sol";
 
 contract TradeTrustERC721 is ITradeTrustERC721, RegistryAccess, Pausable, ERC721 {
   using Address for address;
@@ -69,13 +70,14 @@ contract TradeTrustERC721 is ITradeTrustERC721, RegistryAccess, Pausable, ERC721
    * @param tokenId Token ID to be burnt
    */
   function destroyToken(uint256 tokenId) external override whenNotPaused onlyAccepter {
-    emit TokenBurnt(tokenId);
+    address escrowAddress = titleEscrowFactory.getAddress(address(this), tokenId);
+
+    TitleEscrow(escrowAddress).shred();
 
     // Burning token to 0xdead instead to show a differentiate state as address(0) is used for unminted tokens
-    _registrySafeTransformFrom(ownerOf(tokenId), BURN_ADDRESS, tokenId);
+    _registryTransferTo(BURN_ADDRESS, tokenId);
 
-    // Remove the last surrendered token owner
-    delete _surrenderedOwners[tokenId];
+    emit TokenBurnt(tokenId);
   }
 
   function mintTitle(
@@ -92,46 +94,20 @@ contract TradeTrustERC721 is ITradeTrustERC721, RegistryAccess, Pausable, ERC721
     require(_exists(tokenId), "TokenRegistry: Token does not exist");
     require(isSurrendered(tokenId), "TokenRegistry: Token is not surrendered");
 
-    address previousOwner = _surrenderedOwners[tokenId];
+    address escrowAddress = titleEscrowFactory.getAddress(address(this), tokenId);
+    //    require(escrowAddress.isContract(), "TokenRegistry: Escrow contract does not exist");
 
-    // Remove the last surrendered token owner
-    delete _surrenderedOwners[tokenId];
-
-    address beneficiary = address(0);
-    address holder = address(0);
-
-    if (previousOwner.isContract()) {
-      try IERC165(previousOwner).supportsInterface(type(ITitleEscrow).interfaceId) returns (bool retval) {
-        require(retval, "TokenRegistry: Previous owner is an unsupported Title Escrow");
-
-        ITitleEscrow titleEscrow = ITitleEscrow(previousOwner);
-        beneficiary = titleEscrow.beneficiary();
-        holder = titleEscrow.holder();
-      } catch (bytes memory reason) {
-        if (reason.length == 0) {
-          revert("TokenRegistry: Previous owner is not a TitleEscrow implementer");
-        } else {
-          assembly {
-            revert(add(32, reason), mload(reason))
-          }
-        }
-      }
-    } else {
-      beneficiary = previousOwner;
-      holder = previousOwner;
-    }
-    address newTitleEscrow = titleEscrowFactory.create(address(this), beneficiary, holder);
-    _registrySafeTransformFrom(address(this), newTitleEscrow, tokenId);
+    _registryTransferTo(escrowAddress, tokenId);
 
     emit TokenRestored(tokenId, newTitleEscrow);
 
-    return ownerOf(tokenId);
+    return escrowAddress;
   }
 
   function isSurrendered(uint256 tokenId) public view returns (bool) {
     if (_exists(tokenId)) {
       address owner = ownerOf(tokenId);
-      return (owner == address(this) && _surrenderedOwners[tokenId] != address(0)) || owner == BURN_ADDRESS;
+      return owner == address(this) || owner == BURN_ADDRESS;
     }
     return false;
   }
@@ -153,10 +129,11 @@ contract TradeTrustERC721 is ITradeTrustERC721, RegistryAccess, Pausable, ERC721
       require(isSurrendered(tokenId), "TokenRegistry: Token has not been surrendered for burning");
     } else {
       require(!isSurrendered(tokenId), "TokenRegistry: Token has already been surrendered");
-      if (to == address(this)) {
-        // Surrendering, hence, store the current owner
-        _surrenderedOwners[tokenId] = from;
-      }
+      //      if (to == address(this)) {
+      // We can actually emit surrender event here
+      //        // Surrendering, hence, store the current owner
+      //        _surrenderedOwners[tokenId] = from;
+      //      }
     }
     super._beforeTokenTransfer(from, to, tokenId);
   }
@@ -172,11 +149,7 @@ contract TradeTrustERC721 is ITradeTrustERC721, RegistryAccess, Pausable, ERC721
     return newTitleEscrow;
   }
 
-  function _registrySafeTransformFrom(
-    address from,
-    address to,
-    uint256 tokenId
-  ) internal {
-    this.safeTransferFrom(from, to, tokenId, "");
+  function _registryTransferTo(address to, uint256 tokenId) internal {
+    this.safeTransferFrom(address(this), to, tokenId, "");
   }
 }
