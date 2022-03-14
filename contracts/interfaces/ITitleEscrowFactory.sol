@@ -12,9 +12,9 @@ interface ITitleEscrowFactory {
   function implementation() external view returns (address);
 
   function create(
-    address tokenRegistry,
     address beneficiary,
-    address holder
+    address holder,
+    uint256 tokenId
   ) external returns (address);
 
   function getAddress(address tokenRegistry, uint256 tokenId) external view returns (address);

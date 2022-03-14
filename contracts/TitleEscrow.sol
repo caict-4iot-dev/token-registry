@@ -22,11 +22,11 @@ contract TitleEscrow is IERC721Receiver, Initializable, Context {
 
   address public tokenRegistry;
   uint256 public tokenId;
-  ITitleEscrow.StatusTypes public override status;
+//  ITitleEscrow.StatusTypes public override status;
 
   address public factory;
 
-  constructor() public {
+  constructor() {
     factory = msg.sender;
   }
 
@@ -40,8 +40,8 @@ contract TitleEscrow is IERC721Receiver, Initializable, Context {
     _;
   }
 
-  modifier isHoldingToken() {
-    require(ITradeTrustERC721(tokenRegistry).ownerOf(tokenId) == address(this), "TitleEscrow: Not holding token");
+  modifier whenHoldingToken() {
+    require(_isHoldingToken(), "TitleEscrow: Not holding token");
     _;
   }
 
@@ -70,66 +70,66 @@ contract TitleEscrow is IERC721Receiver, Initializable, Context {
       "TitleEscrow: Only tokens from predefined token registry can be accepted"
     );
 
-    emit TitleReceived(_msgSender(), from, _tokenId);
+//    emit TitleReceived(_msgSender(), from, _tokenId);
     return bytes4(keccak256("onERC721Received(address,address,uint256,bytes)"));
   }
 
-  function nominateBeneficiary(address _nominatedBeneficiary) external onlyBeneficiary isHoldingToken {
-    nominateBeneficiary = _nominatedBeneficiary;
+  function nominateBeneficiary(address _nominatedBeneficiary) external onlyBeneficiary whenHoldingToken {
+    nominatedBeneficiary = _nominatedBeneficiary;
   }
 
-  function nominateHolder(address _nominatedHolder) external onlyBeneficiary isHoldingToken {
-    nominateHolder = _nominatedHolder;
+  function nominateHolder(address _nominatedHolder) external onlyBeneficiary whenHoldingToken {
+    nominatedHolder = _nominatedHolder;
   }
 
-  function nominate(address _nominatedBeneficiary, address _nominatedHolder) external onlyBeneficiary isHoldingToken {
-    nominateBeneficiary = _nominatedBeneficiary;
-    nominateHolder = _nominatedHolder;
+  function nominate(address _nominatedBeneficiary, address _nominatedHolder) external onlyBeneficiary whenHoldingToken {
+    nominatedBeneficiary = _nominatedBeneficiary;
+    nominatedHolder = _nominatedHolder;
   }
 
-  function endorseBeneficiary(address _nominatedBeneficiary) external onlyHolder isHoldingToken {
+  function endorseBeneficiary(address _nominatedBeneficiary) external onlyHolder whenHoldingToken {
     require(_nominatedBeneficiary != address(0), "TitleEscrow: Cannot endorse address");
     require(
       beneficiary == holder || (nominatedBeneficiary == _nominatedBeneficiary),
       "TitleEscrow: Cannot endorse non-nominees"
     );
+    nominatedBeneficiary = address(0);
     beneficiary = _nominatedBeneficiary;
-    nominateBeneficiary = address(0);
   }
 
-  function endorseHolder(address _nominatedHolder) external onlyHolder isHoldingToken {
+  function endorseHolder(address _nominatedHolder) external onlyHolder whenHoldingToken {
     if (_nominatedHolder != address(0)) {
       require(
-        beneficiary == holder || (nominatedBeneficiary == _nominatedBeneficiary),
+        beneficiary == holder || (nominatedHolder == _nominatedHolder),
         "TitleEscrow: Cannot endorse non-nominees"
       );
     }
+    nominatedHolder = address(0);
     holder = _nominatedHolder;
-    nominateHolder = address(0);
   }
 
-  function endorse(address _nominatedBeneficiary, address _nominatedHolder) external onlyHolder isHoldingToken {
+  function endorse(address _nominatedBeneficiary, address _nominatedHolder) external onlyHolder whenHoldingToken {
     require(
       _nominatedBeneficiary != address(0) && _nominatedHolder != address(0),
       "TitleEscrow: Cannot endorse addresses"
     );
     require(
-      beneficiary == holder || (nominatedBeneficiary == _nominatedBeneficiary && nominatedHolder = _nominatedHolder),
+      beneficiary == holder || (nominatedBeneficiary == _nominatedBeneficiary && nominatedHolder == _nominatedHolder),
       "TitleEscrow: Cannot endorse non-nominees"
     );
 
+    _resetNominees();
     beneficiary = nominatedBeneficiary;
     holder = nominatedHolder;
-    _resetNominees();
   }
 
-  function surrender() external onlyBeneficiary onlyHolder isHoldingToken {
+  function surrender() external onlyBeneficiary onlyHolder whenHoldingToken {
     _resetNominees();
     ITradeTrustERC721(tokenRegistry).safeTransferFrom(address(this), tokenRegistry, tokenId);
   }
 
   function shred() external {
-    require(!_isTokenHolder(), "TitleEscrow: Not surrendered yet");
+    require(!_isHoldingToken(), "TitleEscrow: Not surrendered yet");
     require(_msgSender() == tokenRegistry, "TitleEscrow: Caller is not registry");
     selfdestruct(payable(tx.origin));
   }
@@ -138,137 +138,12 @@ contract TitleEscrow is IERC721Receiver, Initializable, Context {
     return _isHoldingToken();
   }
 
-  function _isHoldingToken() view returns (bool) {
+  function _isHoldingToken() internal view returns (bool) {
     return ITradeTrustERC721(tokenRegistry).ownerOf(tokenId) == address(this);
   }
 
   function _resetNominees() internal {
-    nominateBeneficiary = address(0);
-    nominateHolder = address(0);
-  }
-}
-
-contract TitleEscrowCloneable is
-  Context,
-  Initializable,
-  ITitleEscrow,
-  HasHolderInitializable,
-  HasNamedBeneficiaryInitializable,
-  ERC165
-{
-  // Documentation on how this smart contract works: https://docs.tradetrust.io/docs/overview/title-transfer
-
-  ITitleEscrow.StatusTypes public override status;
-
-  // Information on token held
-  ERC721 public override tokenRegistry;
-  uint256 public _tokenId;
-
-  // Factory to clone this title escrow
-  ITitleEscrowFactory public titleEscrowFactory;
-
-  // For exiting into title escrow contracts
-  address public override approvedBeneficiary;
-  address public override approvedHolder;
-
-  function initialize(
-    address _tokenRegistry,
-    address _beneficiary,
-    address _holder,
-    address _titleEscrowFactoryAddress
-  ) public initializer {
-    __initialize__holder(_holder);
-    __initialize__beneficiary(_beneficiary);
-    tokenRegistry = ERC721(_tokenRegistry);
-    titleEscrowFactory = ITitleEscrowFactory(_titleEscrowFactoryAddress);
-    status = StatusTypes.Uninitialised;
-  }
-
-  function supportsInterface(bytes4 interfaceId) public view virtual override(ERC165, IERC165) returns (bool) {
-    return interfaceId == type(ITitleEscrow).interfaceId;
-  }
-
-  function onERC721Received(
-    address, /* operator */
-    address from,
-    uint256 tokenId,
-    bytes calldata /* data */
-  ) external override returns (bytes4) {
-    require(status == StatusTypes.Uninitialised, "TitleEscrow: Contract has been used before");
-    require(
-      _msgSender() == address(tokenRegistry),
-      "TitleEscrow: Only tokens from predefined token registry can be accepted"
-    );
-    _tokenId = tokenId;
-    emit TitleReceived(_msgSender(), from, _tokenId);
-    status = StatusTypes.InUse;
-    return bytes4(keccak256("onERC721Received(address,address,uint256,bytes)"));
-  }
-
-  function changeHolder(address newHolder) public override whenNotPaused isHoldingToken onlyHolder {
-    _changeHolder(newHolder);
-  }
-
-  modifier allowTransferTitleEscrow(address newBeneficiary, address newHolder) {
-    require(newBeneficiary != address(0), "TitleEscrow: Transferring to 0x0 is not allowed");
-    require(newHolder != address(0), "TitleEscrow: Transferring to 0x0 is not allowed");
-    if (holder != beneficiary) {
-      require(newBeneficiary == approvedBeneficiary, "TitleEscrow: Beneficiary has not been endorsed by beneficiary");
-      require(newHolder == approvedHolder, "TitleEscrow: Holder has not been endorsed by beneficiary");
-    }
-    _;
-  }
-
-  modifier isHoldingToken() {
-    require(_tokenId != uint256(0), "TitleEscrow: Contract is not holding a token");
-    require(status == StatusTypes.InUse, "TitleEscrow: Contract is not in use");
-    require(tokenRegistry.ownerOf(_tokenId) == address(this), "TitleEscrow: Contract is not the owner of token");
-    _;
-  }
-
-  modifier whenNotPaused() {
-    bool paused = Pausable(address(tokenRegistry)).paused();
-    require(!paused, "TitleEscrow: Token Registry is paused");
-    _;
-  }
-
-  function _transferTo(address newOwner) internal {
-    status = StatusTypes.Exited;
-    emit TitleCeded(address(tokenRegistry), newOwner, _tokenId);
-    tokenRegistry.safeTransferFrom(address(this), address(newOwner), _tokenId);
-  }
-
-  function surrender() external override whenNotPaused isHoldingToken onlyBeneficiary onlyHolder {
-    _transferTo(address(tokenRegistry));
-
-    emit Surrender(address(tokenRegistry), _tokenId, beneficiary);
-  }
-
-  function transferToNewEscrow(address newBeneficiary, address newHolder)
-    public
-    override
-    whenNotPaused
-    isHoldingToken
-    onlyHolder
-    allowTransferTitleEscrow(newBeneficiary, newHolder)
-  {
-    address newTitleEscrowAddress = titleEscrowFactory.create(address(tokenRegistry), newBeneficiary, newHolder);
-    _transferTo(newTitleEscrowAddress);
-  }
-
-  function approveNewTransferTargets(address newBeneficiary, address newHolder)
-    public
-    override
-    whenNotPaused
-    onlyBeneficiary
-    isHoldingToken
-  {
-    require(newBeneficiary != address(0), "TitleEscrow: Transferring to 0x0 is not allowed");
-    require(newHolder != address(0), "TitleEscrow: Transferring to 0x0 is not allowed");
-
-    emit TransferTitleEscrowApproval(newBeneficiary, newHolder);
-
-    approvedBeneficiary = newBeneficiary;
-    approvedHolder = newHolder;
+    nominatedBeneficiary = address(0);
+    nominatedHolder = address(0);
   }
 }

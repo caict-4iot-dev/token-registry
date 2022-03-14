@@ -99,7 +99,7 @@ contract TradeTrustERC721 is ITradeTrustERC721, RegistryAccess, Pausable, ERC721
 
     _registryTransferTo(escrowAddress, tokenId);
 
-    emit TokenRestored(tokenId, newTitleEscrow);
+    emit TokenRestored(tokenId, escrowAddress);
 
     return escrowAddress;
   }
@@ -143,7 +143,7 @@ contract TradeTrustERC721 is ITradeTrustERC721, RegistryAccess, Pausable, ERC721
     address holder,
     uint256 tokenId
   ) internal virtual returns (address) {
-    address newTitleEscrow = titleEscrowFactory.create(address(this), beneficiary, holder);
+    address newTitleEscrow = titleEscrowFactory.create(beneficiary, holder, tokenId);
     _safeMint(newTitleEscrow, tokenId);
 
     return newTitleEscrow;
