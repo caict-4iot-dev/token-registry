@@ -127,13 +127,6 @@ contract TradeTrustERC721 is ITradeTrustERC721, RegistryAccess, Pausable, ERC721
   ) internal virtual override whenNotPaused {
     if (to == BURN_ADDRESS) {
       require(isSurrendered(tokenId), "TokenRegistry: Token has not been surrendered for burning");
-    } else {
-      require(!isSurrendered(tokenId), "TokenRegistry: Token has already been surrendered");
-      //      if (to == address(this)) {
-      // We can actually emit surrender event here
-      //        // Surrendering, hence, store the current owner
-      //        _surrenderedOwners[tokenId] = from;
-      //      }
     }
     super._beforeTokenTransfer(from, to, tokenId);
   }
