@@ -1,4 +1,4 @@
-import { TitleEscrowCloneable, TradeTrustERC721, TradeTrustERC721Mock } from "@tradetrust/contracts";
+import { TitleEscrow, TradeTrustERC721, TradeTrustERC721Mock } from "@tradetrust/contracts";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { ethers } from "hardhat";
 import { getEventFromTransaction } from "../utils";
@@ -25,7 +25,7 @@ export const mintTokenFixture =
     const escrowAddress = event.escrowAddress as string;
 
     const titleEscrowFactory = await ethers.getContractFactory("TitleEscrowCloneable");
-    const titleEscrow = titleEscrowFactory.attach(escrowAddress) as TitleEscrowCloneable;
+    const titleEscrow = titleEscrowFactory.attach(escrowAddress) as TitleEscrow;
 
     return { tokenId, titleEscrow, event };
   };
