@@ -7,7 +7,7 @@ import { getTestUsers, TestUsers } from "./utils";
 
 const { loadFixture } = waffle;
 
-describe.only("TradeTrustERC721 Pausable Behaviour", async () => {
+describe("TradeTrustERC721 Pausable Behaviour", async () => {
   let users: TestUsers;
   let registryContract: TradeTrustERC721;
 
@@ -162,8 +162,26 @@ describe.only("TradeTrustERC721 Pausable Behaviour", async () => {
           expect(paused).to.be.true;
         });
 
-        it("should not be allowed to call surrender", async () => {
+        it("should not allow surrendering", async () => {
           const tx = titleEscrowContract.connect(users.beneficiary).surrender();
+
+          await expect(tx).to.be.revertedWith("TitleEscrow: Token Registry is paused");
+        });
+
+        it("should not allow shredding", async () => {
+          const tx = titleEscrowContract.shred();
+
+          await expect(tx).to.be.revertedWith("TitleEscrow: Token Registry is paused");
+        });
+
+        it("should not allow nomination of beneficiary", async () => {
+          const tx = titleEscrowContract.nominateBeneficiary(users.beneficiary.address);
+
+          await expect(tx).to.be.revertedWith("TitleEscrow: Token Registry is paused");
+        });
+
+        it("should not allow nomination of holder", async () => {
+          const tx = titleEscrowContract.nominateHolder(users.holder.address);
 
           await expect(tx).to.be.revertedWith("TitleEscrow: Token Registry is paused");
         });
@@ -174,14 +192,20 @@ describe.only("TradeTrustERC721 Pausable Behaviour", async () => {
           await expect(tx).to.be.revertedWith("TitleEscrow: Token Registry is paused");
         });
 
-        it("should not allow endorsement to new title escrow", async () => {
-          const tx = titleEscrowContract.endorse(users.beneficiary.address, users.holder.address);
+        it("should not allow endorsement of beneficiary", async () => {
+          const tx = titleEscrowContract.endorseBeneficiary(users.beneficiary.address);
 
           await expect(tx).to.be.revertedWith("TitleEscrow: Token Registry is paused");
         });
 
         it("should not allow endorsement of holder", async () => {
           const tx = titleEscrowContract.endorseHolder(users.holder.address);
+
+          await expect(tx).to.be.revertedWith("TitleEscrow: Token Registry is paused");
+        });
+
+        it("should not allow endorsement to new title escrow", async () => {
+          const tx = titleEscrowContract.endorse(users.beneficiary.address, users.holder.address);
 
           await expect(tx).to.be.revertedWith("TitleEscrow: Token Registry is paused");
         });
