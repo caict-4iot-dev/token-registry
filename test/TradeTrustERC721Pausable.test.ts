@@ -1,5 +1,5 @@
 import { waffle } from "hardhat";
-import { TitleEscrowCloneable, TradeTrustERC721, TradeTrustERC721Mock } from "@tradetrust/contracts";
+import { TitleEscrow, TradeTrustERC721, TradeTrustERC721Mock } from "@tradetrust/contracts";
 import faker from "faker";
 import { expect } from ".";
 import { deployTokenFixture, mintTokenFixture } from "./fixtures";
@@ -115,7 +115,7 @@ describe("TradeTrustERC721 Pausable Behaviour", async () => {
     });
 
     describe("Token Registry and Title Escrow Behaviours", () => {
-      let titleEscrowContract: TitleEscrowCloneable;
+      let titleEscrowContract: TitleEscrow;
 
       beforeEach(async () => {
         titleEscrowContract = (
