@@ -9,14 +9,14 @@ import "./interfaces/ITitleEscrow.sol";
 import "./interfaces/ITradeTrustERC721.sol";
 
 contract TitleEscrow is ITitleEscrow, Initializable {
+  address public override tokenRegistry;
+  uint256 public override tokenId;
+
   address public override beneficiary;
   address public override holder;
 
   address public override nominatedBeneficiary;
   address public override nominatedHolder;
-
-  address public override tokenRegistry;
-  uint256 public override tokenId;
 
   modifier onlyBeneficiary() {
     require(msg.sender == beneficiary, "TitleEscrow: Caller is not beneficiary");
@@ -53,7 +53,7 @@ contract TitleEscrow is ITitleEscrow, Initializable {
 
   function onERC721Received(
     address, /* operator */
-    address /* from */,
+    address, /* from */
     uint256 _tokenId,
     bytes calldata /* data */
   ) external override returns (bytes4) {
