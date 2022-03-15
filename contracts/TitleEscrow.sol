@@ -8,7 +8,7 @@ import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 import "./interfaces/ITitleEscrow.sol";
 import "./interfaces/ITradeTrustERC721.sol";
 
-contract TitleEscrow is ITitleEscrow, Initializable, Context {
+contract TitleEscrow is ITitleEscrow, Initializable {
   address public override beneficiary;
   address public override holder;
 
@@ -19,12 +19,12 @@ contract TitleEscrow is ITitleEscrow, Initializable, Context {
   uint256 public override tokenId;
 
   modifier onlyBeneficiary() {
-    require(_msgSender() == beneficiary, "TitleEscrow: Caller is not beneficiary");
+    require(msg.sender == beneficiary, "TitleEscrow: Caller is not beneficiary");
     _;
   }
 
   modifier onlyHolder() {
-    require(_msgSender() == holder, "TitleEscrow: Caller is not holder");
+    require(msg.sender == holder, "TitleEscrow: Caller is not holder");
     _;
   }
 
@@ -59,7 +59,7 @@ contract TitleEscrow is ITitleEscrow, Initializable, Context {
   ) external override returns (bytes4) {
     require(tokenId == _tokenId, "TitleEscrow: Unable to accept token");
     require(
-      _msgSender() == address(tokenRegistry),
+      msg.sender == address(tokenRegistry),
       "TitleEscrow: Only tokens from predefined token registry can be accepted"
     );
 
@@ -163,7 +163,7 @@ contract TitleEscrow is ITitleEscrow, Initializable, Context {
 
   function shred() external override whenNotPaused {
     require(!_isHoldingToken(), "TitleEscrow: Not surrendered yet");
-    require(_msgSender() == tokenRegistry, "TitleEscrow: Caller is not registry");
+    require(msg.sender == tokenRegistry, "TitleEscrow: Caller is not registry");
     selfdestruct(payable(tx.origin));
 
     emit Shred(tokenRegistry, tokenId);
