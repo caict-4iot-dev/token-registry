@@ -21,7 +21,7 @@ contract TitleEscrowFactory is ITitleEscrowFactory {
     address titleEscrow = Clones.cloneDeterministic(implementation, salt);
     TitleEscrow(titleEscrow).initialize(msg.sender, beneficiary, holder, tokenId);
 
-    emit TitleEscrowCreated(titleEscrow, msg.sender, beneficiary, holder, tokenId);
+    emit TitleEscrowCreated(titleEscrow, msg.sender, tokenId, beneficiary, holder);
 
     return titleEscrow;
   }

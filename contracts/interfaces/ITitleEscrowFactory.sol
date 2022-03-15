@@ -3,11 +3,11 @@ pragma solidity ^0.8.0;
 
 interface ITitleEscrowFactory {
   event TitleEscrowCreated(
-    address indexed escrowAddress,
+    address indexed titleEscrow,
     address indexed tokenRegistry,
+    uint256 indexed tokenId,
     address beneficiary,
-    address holder,
-    uint256 tokenId
+    address holder
   );
 
   function implementation() external view returns (address);
