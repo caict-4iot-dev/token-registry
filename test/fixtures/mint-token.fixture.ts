@@ -19,12 +19,12 @@ export const mintTokenFixture =
     const tx = await token.mintTitle(beneficiary.address, holder.address, tokenId);
 
     const abi = [
-      "event TitleEscrowDeployed (address indexed escrowAddress, address indexed tokenRegistry, address beneficiary, address holder)",
+      "event TitleEscrowCreated (address indexed titleEscrow, address indexed tokenRegistry, uint256 indexed tokenId, address beneficiary, address holder)",
     ];
-    const event = await getEventFromTransaction(tx, abi, "TitleEscrowDeployed");
-    const escrowAddress = event.escrowAddress as string;
+    const event = await getEventFromTransaction(tx, abi, "TitleEscrowCreated");
+    const escrowAddress = event.titleEscrow as string;
 
-    const titleEscrowFactory = await ethers.getContractFactory("TitleEscrowCloneable");
+    const titleEscrowFactory = await ethers.getContractFactory("TitleEscrow");
     const titleEscrow = titleEscrowFactory.attach(escrowAddress) as TitleEscrow;
 
     return { tokenId, titleEscrow, event };
