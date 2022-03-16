@@ -1,8 +1,8 @@
 /* eslint-disable camelcase */
 import { ethers, waffle } from "hardhat";
 import {
-  TitleEscrowCloneable,
-  TitleEscrowCloneable__factory,
+  TitleEscrow,
+  TitleEscrow__factory,
   TradeTrustERC721,
   TradeTrustERC721__factory,
   TradeTrustERC721Mock,
@@ -62,11 +62,11 @@ describe("TradeTrustERC721 (TS Migration)", async () => {
 
       describe("When token has been surrendered", () => {
         describe("When previous owner is a Title Escrow", () => {
-          let stubTitleEscrow: MockContract<TitleEscrowCloneable>;
+          let stubTitleEscrow: MockContract<TitleEscrow>;
 
           describe("Interface checking", () => {
             beforeEach(async () => {
-              const stubTitleEscrowFactory = await smock.mock<TitleEscrowCloneable__factory>("TitleEscrowCloneable");
+              const stubTitleEscrowFactory = await smock.mock<TitleEscrow__factory>("TitleEscrow");
               stubTitleEscrow = await stubTitleEscrowFactory.deploy();
               await stubTitleEscrow.initialize(
                 tradeTrustERC721Mock.address,
@@ -110,7 +110,7 @@ describe("TradeTrustERC721 (TS Migration)", async () => {
           });
 
           describe("Information restored", () => {
-            let titleEscrow: TitleEscrowCloneable;
+            let titleEscrow: TitleEscrow;
 
             beforeEach(async () => {
               const { beneficiary } = users;
@@ -155,8 +155,8 @@ describe("TradeTrustERC721 (TS Migration)", async () => {
               await tradeTrustERC721Mock.restoreTitle(tokenId);
 
               const newOwner = await tradeTrustERC721Mock.ownerOf(tokenId);
-              const titleEscrowFactory = await ethers.getContractFactory("TitleEscrowCloneable");
-              const newTitleEscrow = titleEscrowFactory.attach(newOwner) as TitleEscrowCloneable;
+              const titleEscrowFactory = await ethers.getContractFactory("TitleEscrow");
+              const newTitleEscrow = titleEscrowFactory.attach(newOwner) as TitleEscrow;
               const restoredBeneficiary = await newTitleEscrow.beneficiary();
               const restoredHolder = await newTitleEscrow.holder();
 
@@ -168,8 +168,8 @@ describe("TradeTrustERC721 (TS Migration)", async () => {
               await tradeTrustERC721Mock.restoreTitle(tokenId);
 
               const newOwner = await tradeTrustERC721Mock.ownerOf(tokenId);
-              const titleEscrowFactory = await ethers.getContractFactory("TitleEscrowCloneable");
-              const newTitleEscrow = titleEscrowFactory.attach(newOwner) as TitleEscrowCloneable;
+              const titleEscrowFactory = await ethers.getContractFactory("TitleEscrow");
+              const newTitleEscrow = titleEscrowFactory.attach(newOwner) as TitleEscrow;
               const tokenRegistryAddress = await newTitleEscrow.tokenRegistry();
 
               expect(tokenRegistryAddress).to.be.equal(tradeTrustERC721Mock.address);
@@ -221,8 +221,8 @@ describe("TradeTrustERC721 (TS Migration)", async () => {
             await tradeTrustERC721Mock.connect(users.carrier).restoreTitle(tokenId);
 
             const newOwner = await tradeTrustERC721Mock.ownerOf(tokenId);
-            const titleEscrowFactory = await ethers.getContractFactory("TitleEscrowCloneable");
-            const titleEscrow = titleEscrowFactory.attach(newOwner) as TitleEscrowCloneable;
+            const titleEscrowFactory = await ethers.getContractFactory("TitleEscrow");
+            const titleEscrow = titleEscrowFactory.attach(newOwner) as TitleEscrow;
 
             const beneficiary = await titleEscrow.beneficiary();
             const holder = await titleEscrow.holder();
@@ -256,8 +256,8 @@ describe("TradeTrustERC721 (TS Migration)", async () => {
           // This scenario should never happen unless something bad has really gone wrong in the transfer.
           beforeEach(async () => {
             const titleEscrowAddress = await stubTradeTrustERC721.ownerOf(tokenId);
-            const titleEscrowFactory = await ethers.getContractFactory("TitleEscrowCloneable");
-            const titleEscrow = titleEscrowFactory.attach(titleEscrowAddress) as TitleEscrowCloneable;
+            const titleEscrowFactory = await ethers.getContractFactory("TitleEscrow");
+            const titleEscrow = titleEscrowFactory.attach(titleEscrowAddress) as TitleEscrow;
             await titleEscrow.connect(users.beneficiary).surrender();
           });
 
@@ -533,7 +533,7 @@ describe("TradeTrustERC721 (TS Migration)", async () => {
 
   describe("Check is token surrendered status", () => {
     let tokenId: string;
-    let titleEscrowContract: TitleEscrowCloneable;
+    let titleEscrowContract: TitleEscrow;
 
     beforeEach(async () => {
       tokenId = faker.datatype.hexaDecimal(64);

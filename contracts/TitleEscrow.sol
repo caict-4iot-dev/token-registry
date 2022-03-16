@@ -65,23 +65,23 @@ contract TitleEscrow is ITitleEscrow, Initializable {
   }
 
   function nominateBeneficiary(address _nominatedBeneficiary)
-    external
+    public
     override
     whenNotPaused
     onlyBeneficiary
     whenHoldingToken
   {
     require(beneficiary != _nominatedBeneficiary, "TitleEscrow: Nominee is already beneficiary");
-    require(nominatedBeneficiary != _nominatedBeneficiary, "TitleEscrow: Nominee is already nominated");
+    require(nominatedBeneficiary != _nominatedBeneficiary, "TitleEscrow: Beneficiary nominee is already nominated");
 
     nominatedBeneficiary = _nominatedBeneficiary;
 
     emit BeneficiaryNomination(registry, tokenId, nominatedBeneficiary, msg.sender);
   }
 
-  function nominateHolder(address _nominatedHolder) external override whenNotPaused onlyBeneficiary whenHoldingToken {
+  function nominateHolder(address _nominatedHolder) public override whenNotPaused onlyBeneficiary whenHoldingToken {
     require(holder != _nominatedHolder, "TitleEscrow: Nominee is already holder");
-    require(nominatedHolder != _nominatedHolder, "TitleEscrow: Nominee is already nominated");
+    require(nominatedHolder != _nominatedHolder, "TitleEscrow: Holder nominee is already nominated");
 
     nominatedHolder = _nominatedHolder;
 
@@ -89,22 +89,11 @@ contract TitleEscrow is ITitleEscrow, Initializable {
   }
 
   function nominate(address _nominatedBeneficiary, address _nominatedHolder)
-    external
+    public
     override
-    whenNotPaused
-    onlyBeneficiary
-    whenHoldingToken
   {
-    require(beneficiary != _nominatedBeneficiary, "TitleEscrow: Nominee is already beneficiary");
-    require(holder != _nominatedHolder, "TitleEscrow: Nominee is already holder");
-    require(nominatedBeneficiary != _nominatedBeneficiary, "TitleEscrow: Beneficiary nominee is already nominated");
-    require(nominatedHolder != _nominatedHolder, "TitleEscrow: Holder nominee is already nominated");
-
-    nominatedBeneficiary = _nominatedBeneficiary;
-    nominatedHolder = _nominatedHolder;
-
-    emit BeneficiaryNomination(registry, tokenId, nominatedBeneficiary, msg.sender);
-    emit HolderNomination(registry, tokenId, nominatedHolder, msg.sender);
+    nominateBeneficiary(_nominatedBeneficiary);
+    nominateHolder(_nominatedHolder);
   }
 
   function endorseBeneficiary(address _nominatedBeneficiary)
