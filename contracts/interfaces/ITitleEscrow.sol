@@ -53,7 +53,7 @@ interface ITitleEscrow is IERC721Receiver {
 
   function nominatedHolder() external view returns (address);
 
-  function tokenRegistry() external view returns (address);
+  function registry() external view returns (address);
 
   function tokenId() external view returns (uint256);
 
