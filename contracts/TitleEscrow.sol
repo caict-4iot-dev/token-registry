@@ -88,16 +88,13 @@ contract TitleEscrow is ITitleEscrow, Initializable {
     emit HolderNomination(registry, tokenId, nominatedHolder, msg.sender);
   }
 
-  function nominate(address _nominatedBeneficiary, address _nominatedHolder)
-    public
-    override
-  {
+  function nominate(address _nominatedBeneficiary, address _nominatedHolder) public override {
     nominateBeneficiary(_nominatedBeneficiary);
     nominateHolder(_nominatedHolder);
   }
 
   function endorseBeneficiary(address _nominatedBeneficiary)
-    external
+    public
     override
     whenNotPaused
     onlyHolder
@@ -106,53 +103,34 @@ contract TitleEscrow is ITitleEscrow, Initializable {
     require(_nominatedBeneficiary != address(0), "TitleEscrow: Cannot endorse address");
     require(
       beneficiary == holder || (nominatedBeneficiary == _nominatedBeneficiary),
-      "TitleEscrow: Cannot endorse non-nominees"
+      "TitleEscrow: Cannot endorse non-nominee"
     );
 
-    beneficiary = nominatedBeneficiary;
+    beneficiary = _nominatedBeneficiary;
     nominatedBeneficiary = address(0);
 
     emit BeneficiaryEndorsement(registry, tokenId, beneficiary, msg.sender);
   }
 
-  function endorseHolder(address _nominatedHolder) external override whenNotPaused onlyHolder whenHoldingToken {
+  function endorseHolder(address _nominatedHolder) public override whenNotPaused onlyHolder whenHoldingToken {
     require(_nominatedHolder != address(0), "TitleEscrow: Cannot endorse address");
+    require(holder != _nominatedHolder, "TitleEscrow: Endorsee is already holder");
     if (nominatedHolder != address(0)) {
-      require(holder != _nominatedHolder, "TitleEscrow: Endorsee is already holder");
       require(
         beneficiary == holder || (nominatedHolder == _nominatedHolder),
-        "TitleEscrow: Cannot endorse non-nominees"
+        "TitleEscrow: Cannot endorse non-nominee"
       );
     }
 
-    holder = nominatedHolder;
+    holder = _nominatedHolder;
     nominatedHolder = address(0);
 
     emit HolderEndorsement(registry, tokenId, holder, msg.sender);
   }
 
-  function endorse(address _nominatedBeneficiary, address _nominatedHolder)
-    external
-    override
-    whenNotPaused
-    onlyHolder
-    whenHoldingToken
-  {
-    require(
-      _nominatedBeneficiary != address(0) && _nominatedHolder != address(0),
-      "TitleEscrow: Cannot endorse addresses"
-    );
-    require(
-      beneficiary == holder || (nominatedBeneficiary == _nominatedBeneficiary && nominatedHolder == _nominatedHolder),
-      "TitleEscrow: Cannot endorse non-nominees"
-    );
-
-    _resetNominees();
-    beneficiary = nominatedBeneficiary;
-    holder = nominatedHolder;
-
-    emit BeneficiaryEndorsement(registry, tokenId, beneficiary, msg.sender);
-    emit HolderEndorsement(registry, tokenId, holder, msg.sender);
+  function endorse(address _nominatedBeneficiary, address _nominatedHolder) external override {
+    endorseBeneficiary(_nominatedBeneficiary);
+    endorseHolder(_nominatedHolder);
   }
 
   function surrender() external override onlyBeneficiary onlyHolder whenNotPaused whenHoldingToken {
