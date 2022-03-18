@@ -30,7 +30,7 @@ interface ITitleEscrow is IERC721Receiver {
     address indexed endorsedHolder,
     address endorser
   );
-  event Surrender(address indexed tokenRegistry, uint256 indexed tokenId, address beneficiary, address holder);
+  event Surrender(address indexed tokenRegistry, uint256 indexed tokenId, address surrenderer);
   event Shred(address indexed tokenRegistry, uint256 indexed tokenId);
 
   function nominateBeneficiary(address _nominatedBeneficiary) external;

@@ -1,15 +1,16 @@
 import { ethers, waffle } from "hardhat";
-import { ERC721, TitleEscrow, TradeTrustERC721, TradeTrustERC721Mock } from "@tradetrust/contracts";
+import { TitleEscrow, TradeTrustERC721 } from "@tradetrust/contracts";
 import faker from "faker";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
+import { Signer } from "ethers";
 import { expect } from ".";
-import { deployTokenFixture, mintTokenFixture } from "./fixtures";
-import { getTestUsers, getTitleEscrowContract, TestUsers } from "./utils";
+import { deployTokenFixture } from "./fixtures";
+import { getTestUsers, getTitleEscrowContract, impersonateAccount, TestUsers } from "./utils";
 import { deployTitleEscrowFixture } from "./fixtures/deploy-title-escrow.fixture";
 
 const { loadFixture } = waffle;
 
-describe.only("Title Escrow", async () => {
+describe("Title Escrow", async () => {
   let users: TestUsers;
 
   let tokenId: string;
@@ -155,7 +156,7 @@ describe.only("Title Escrow", async () => {
     });
   });
 
-  describe.only("Nomination and Endorsement", () => {
+  describe("Title Escrow Behaviours", () => {
     let registryContract: TradeTrustERC721;
     let titleEscrowOwnerContract: TitleEscrow;
 
@@ -168,12 +169,16 @@ describe.only("Title Escrow", async () => {
           deployer: users.carrier,
         })
       );
-
-      await registryContract.connect(users.carrier).mintTitle(users.beneficiary.address, users.holder.address, tokenId);
-      titleEscrowOwnerContract = await getTitleEscrowContract(registryContract, tokenId);
     });
 
     describe("Nomination", () => {
+      beforeEach(async () => {
+        await registryContract
+          .connect(users.carrier)
+          .mintTitle(users.beneficiary.address, users.holder.address, tokenId);
+        titleEscrowOwnerContract = await getTitleEscrowContract(registryContract, tokenId);
+      });
+
       describe("Beneficiary Nomination", () => {
         let beneficiaryNominee: SignerWithAddress;
 
@@ -360,6 +365,13 @@ describe.only("Title Escrow", async () => {
     });
 
     describe("Endorsement", () => {
+      beforeEach(async () => {
+        await registryContract
+          .connect(users.carrier)
+          .mintTitle(users.beneficiary.address, users.holder.address, tokenId);
+        titleEscrowOwnerContract = await getTitleEscrowContract(registryContract, tokenId);
+      });
+
       describe("Beneficiary Endorsement", () => {
         let beneficiaryNominee: SignerWithAddress;
 
@@ -587,33 +599,168 @@ describe.only("Title Escrow", async () => {
         });
       });
     });
-  });
 
-  describe("Surrendering", () => {
-    it("should only allow a beneficiary who is also a holder to surrender", async () => {});
+    describe("Surrendering", () => {
+      let beneficiary: SignerWithAddress;
+      let holder: SignerWithAddress;
 
-    it("should only allow surrendering when title escrow is holding token", async () => {});
+      beforeEach(async () => {
+        // eslint-disable-next-line no-multi-assign
+        beneficiary = holder = users.others[faker.datatype.number(users.others.length - 1)];
+        await registryContract.connect(users.carrier).mintTitle(beneficiary.address, holder.address, tokenId);
+        titleEscrowOwnerContract = await getTitleEscrowContract(registryContract, tokenId);
+      });
 
-    it("should not allow a beneficiary only to surrender", async () => {});
+      it("should allow a beneficiary who is also a holder to surrender", async () => {
+        await titleEscrowOwnerContract.connect(beneficiary).surrender();
+        const res = await registryContract.isSurrendered(tokenId);
 
-    it("should not allow a holder only to surrender", async () => {});
+        expect(res).to.be.true;
+      });
 
-    it("should reset all nominees", async () => {});
+      it("should not allow surrendering when title escrow is not holding token", async () => {
+        await titleEscrowOwnerContract.connect(beneficiary).surrender();
+        const tx = titleEscrowOwnerContract.connect(beneficiary).surrender();
 
-    it("should transfer token back to registry", async () => {});
+        await expect(tx).to.be.revertedWith("TitleEscrow: Not holding token");
+      });
 
-    it("should emit Surrender event", async () => {});
-  });
+      it("should not allow a beneficiary only to surrender", async () => {
+        tokenId = faker.datatype.hexaDecimal(64);
+        await registryContract
+          .connect(users.carrier)
+          .mintTitle(users.beneficiary.address, users.holder.address, tokenId);
+        titleEscrowOwnerContract = await getTitleEscrowContract(registryContract, tokenId);
 
-  describe("Shredding", () => {
-    it("should only allow to shred when title escrow is not holding token", async () => {});
+        const tx = titleEscrowOwnerContract.connect(users.beneficiary).surrender();
 
-    it("should allow to be called from registry", async () => {});
+        await expect(tx).to.be.revertedWith("TitleEscrow: Caller is not holder");
+      });
 
-    it("should not allow to be called from non-registry", async () => {});
+      it("should not allow a holder only to surrender", async () => {
+        tokenId = faker.datatype.hexaDecimal(64);
+        await registryContract
+          .connect(users.carrier)
+          .mintTitle(users.beneficiary.address, users.holder.address, tokenId);
+        titleEscrowOwnerContract = await getTitleEscrowContract(registryContract, tokenId);
 
-    it("should self destruct", async () => {});
+        const tx = titleEscrowOwnerContract.connect(users.holder).surrender();
 
-    it("should emit Shred event", async () => {});
+        await expect(tx).to.be.revertedWith("TitleEscrow: Caller is not beneficiary");
+      });
+
+      it("should reset all nominees", async () => {
+        const [beneficiaryNominee, holderNominee] = [
+          ethers.utils.getAddress(faker.finance.ethereumAddress()),
+          ethers.utils.getAddress(faker.finance.ethereumAddress()),
+        ];
+        const titleEscrowAsBeneficiary = titleEscrowOwnerContract.connect(beneficiary);
+        await titleEscrowAsBeneficiary.nominate(beneficiaryNominee, holderNominee);
+        const [initialBeneficiaryNominee, initialHolderNominee] = await Promise.all([
+          titleEscrowOwnerContract.nominatedBeneficiary(),
+          titleEscrowOwnerContract.nominatedHolder(),
+        ]);
+
+        await titleEscrowAsBeneficiary.surrender();
+        const [currentBeneficiaryNominee, currentHolderNominee] = await Promise.all([
+          titleEscrowOwnerContract.nominatedBeneficiary(),
+          titleEscrowOwnerContract.nominatedHolder(),
+        ]);
+
+        expect([initialBeneficiaryNominee, initialHolderNominee]).to.deep.equal([beneficiaryNominee, holderNominee]);
+        expect([currentBeneficiaryNominee, currentHolderNominee]).to.deep.equal([
+          ethers.constants.AddressZero,
+          ethers.constants.AddressZero,
+        ]);
+      });
+
+      it("should transfer token back to registry", async () => {
+        const initialOwner = await registryContract.ownerOf(tokenId);
+
+        await titleEscrowOwnerContract.connect(beneficiary).surrender();
+        const currentOwner = await registryContract.ownerOf(tokenId);
+
+        expect(initialOwner).to.equal(titleEscrowOwnerContract.address);
+        expect(currentOwner).to.equal(registryContract.address);
+      });
+
+      it("should not hold token after surrendering", async () => {
+        const initialHoldingStatus = await titleEscrowOwnerContract.isHoldingToken();
+
+        await titleEscrowOwnerContract.connect(beneficiary).surrender();
+        const currentHoldingStatus = await titleEscrowOwnerContract.isHoldingToken();
+
+        expect(initialHoldingStatus).to.equal(true);
+        expect(currentHoldingStatus).to.equal(false);
+      });
+
+      it("should emit Surrender event with correct values", async () => {
+        const tx = await titleEscrowOwnerContract.connect(beneficiary).surrender();
+
+        expect(tx)
+          .to.emit(titleEscrowOwnerContract, "Surrender")
+          .withArgs(registryContract.address, tokenId, beneficiary.address);
+        expect(tx)
+          .to.emit(titleEscrowOwnerContract, "Surrender")
+          .withArgs(registryContract.address, tokenId, holder.address);
+      });
+    });
+
+    describe("Shredding", () => {
+      let registrySigner: Signer;
+
+      beforeEach(async () => {
+        registrySigner = await impersonateAccount({ address: registryContract.address });
+        await registryContract
+          .connect(users.carrier)
+          .mintTitle(users.beneficiary.address, users.beneficiary.address, tokenId);
+        titleEscrowOwnerContract = await getTitleEscrowContract(registryContract, tokenId);
+      });
+
+      it("should allow to be called from registry", async () => {
+        await titleEscrowOwnerContract.connect(users.beneficiary).surrender();
+        const holdingStatus = await titleEscrowOwnerContract.isHoldingToken();
+
+        await titleEscrowOwnerContract.connect(registrySigner).shred();
+        const tx = ethers.provider.getCode(titleEscrowOwnerContract.address);
+
+        expect(holdingStatus).to.equal(false);
+        await expect(tx).to.not.be.reverted;
+      });
+
+      it("should not allow to shred when title escrow is holding token", async () => {
+        const holdingStatus = await titleEscrowOwnerContract.isHoldingToken();
+
+        const tx = titleEscrowOwnerContract.connect(registrySigner).shred();
+
+        expect(holdingStatus).to.equal(true);
+        await expect(tx).to.be.revertedWith("TitleEscrow: Not surrendered yet");
+      });
+
+      it("should not allow to be called from non-registry", async () => {
+        await titleEscrowOwnerContract.connect(users.beneficiary).surrender();
+
+        const tx = titleEscrowOwnerContract.connect(users.beneficiary).shred();
+
+        await expect(tx).to.be.revertedWith("TitleEscrow: Caller is not registry");
+      });
+
+      it("should self destruct", async () => {
+        await titleEscrowOwnerContract.connect(users.beneficiary).surrender();
+
+        await titleEscrowOwnerContract.connect(registrySigner).shred();
+        const res = await ethers.provider.getCode(titleEscrowOwnerContract.address);
+
+        expect(res).to.equal("0x");
+      });
+
+      it("should emit Shred event", async () => {
+        await titleEscrowOwnerContract.connect(users.beneficiary).surrender();
+
+        const tx = await titleEscrowOwnerContract.connect(registrySigner).shred();
+
+        expect(tx).to.emit(titleEscrowOwnerContract, "Shred").withArgs(registryContract.address, tokenId);
+      });
+    });
   });
 });
