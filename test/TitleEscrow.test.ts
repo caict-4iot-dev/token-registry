@@ -156,7 +156,7 @@ describe("Title Escrow", async () => {
     });
   });
 
-  describe("Title Escrow Behaviours", () => {
+  describe("Operation Behaviours", () => {
     let registryContract: TradeTrustERC721;
     let titleEscrowOwnerContract: TitleEscrow;
 
