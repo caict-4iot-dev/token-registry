@@ -1,5 +1,5 @@
 import { waffle, ethers } from "hardhat";
-import { TitleEscrow, TitleEscrowFactory, TradeTrustERC721 } from "@tradetrust/contracts";
+import { TitleEscrow, TitleEscrowFactory, TradeTrustERC721, TradeTrustERC721Mock } from "@tradetrust/contracts";
 import faker from "faker";
 import { MockContract, smock } from "@defi-wonderland/smock";
 import { expect } from ".";
@@ -155,7 +155,7 @@ describe("TradeTrustERC721", async () => {
 
       describe("When token has not been surrendered", () => {
         it("should not allow to burn the token even if registry is approved", async () => {
-          // Note that this is an edge case and not a normal flow.
+          // Note: This is an edge case and not a normal flow.
           const operator = users.carrier;
           const titleEscrowSigner = await impersonateAccount({ address: titleEscrowContract.address });
           await registryContract.connect(titleEscrowSigner).approve(operator.address, tokenId);
@@ -169,6 +169,25 @@ describe("TradeTrustERC721", async () => {
           const tx = registryContractAsAdmin.destroyToken(tokenId);
 
           await expect(tx).to.be.revertedWith("TitleEscrow: Not surrendered yet");
+        });
+
+        it("should revert before transfer when forcefully sent to burn address", async () => {
+          // Note: This is only an additional defence and is not a normal flow.
+          const registryContractMock = await loadFixture(
+            deployTokenFixture<TradeTrustERC721Mock>({
+              tokenContractName: "TradeTrustERC721Mock",
+              tokenName: "The Great Shipping Company",
+              tokenInitials: "GSC",
+              deployer: users.carrier,
+            })
+          );
+          await registryContractMock.mintInternal(users.carrier.address, tokenId);
+
+          const tx = registryContractMock
+            .connect(users.carrier)
+            .transferFrom(users.carrier.address, AddressConstants.burn, tokenId);
+
+          await expect(tx).to.be.revertedWith("TokenRegistry: Token has not been surrendered");
         });
       });
     });
