@@ -328,6 +328,14 @@ describe("TradeTrustERC721", async () => {
 
         expect(res).to.be.false;
       });
+
+      it("should revert if a token does not exist", async () => {
+        const invalidTokenId = faker.datatype.hexaDecimal(64);
+
+        const tx = registryContract.isSurrendered(invalidTokenId);
+
+        await expect(tx).to.be.revertedWith("TokenRegistry: Token does not exist");
+      });
     });
   });
 });

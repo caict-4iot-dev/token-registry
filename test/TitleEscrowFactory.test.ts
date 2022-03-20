@@ -6,6 +6,7 @@ import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from ".";
 import { deployEscrowFactoryFixture } from "./fixtures";
 import { getEventFromTransaction, getTestUsers, TestUsers } from "./utils";
+import { computeTitleEscrowAddress } from "../src/utils";
 
 const { loadFixture } = waffle;
 
@@ -71,6 +72,24 @@ describe("TitleEscrowFactory", async () => {
           users.beneficiary.address,
           users.holder.address
         );
+    });
+  });
+
+  describe("Compute Title Escrow address", () => {
+    it("should return the correct title escrow address", async () => {
+      const fakeRegistryAddress = faker.finance.ethereumAddress();
+      const tokenId = faker.datatype.hexaDecimal(64);
+      const implementationAddr = await titleEscrowFactory.implementation();
+      const expectedAddress = computeTitleEscrowAddress({
+        registryAddress: fakeRegistryAddress,
+        tokenId,
+        implementationAddress: implementationAddr,
+        factoryAddress: titleEscrowFactory.address,
+      });
+
+      const res = await titleEscrowFactory.getAddress(fakeRegistryAddress, tokenId);
+
+      expect(res).to.equal(expectedAddress);
     });
   });
 });

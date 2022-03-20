@@ -45,12 +45,12 @@ contract TradeTrustERC721 is ITradeTrustERC721, RegistryAccess, Pausable, ERC721
   }
 
   function onERC721Received(
-    address _operator,
-    address _from,
-    uint256 _tokenId,
-    bytes memory _data
-  ) public override returns (bytes4) {
-//    address expectedOperator = titleEscrowFactory.getAddress(address(this), _tokenId);
+    address, /* _operator */
+    address, /* _from */
+    uint256, /* _tokenId */
+    bytes memory /* _data */
+  ) public pure override returns (bytes4) {
+    //    address expectedOperator = titleEscrowFactory.getAddress(address(this), _tokenId);
     //    require(_operator == expectedOperator, "TitleEscrow: Unexpected operator");
     // TODO: Why event emit this event??
     //    emit TokenReceived(_operator, _from, _tokenId, _data);
@@ -107,11 +107,9 @@ contract TradeTrustERC721 is ITradeTrustERC721, RegistryAccess, Pausable, ERC721
   }
 
   function isSurrendered(uint256 tokenId) public view returns (bool) {
-    if (_exists(tokenId)) {
-      address owner = ownerOf(tokenId);
-      return owner == address(this) || owner == BURN_ADDRESS;
-    }
-    return false;
+    require(_exists(tokenId), "TokenRegistry: Token does not exist");
+    address owner = ownerOf(tokenId);
+    return owner == address(this) || owner == BURN_ADDRESS;
   }
 
   function pause() external onlyAdmin {
