@@ -7,6 +7,8 @@ import { expect } from ".";
 import { deployTokenFixture } from "./fixtures";
 import { getTestUsers, getTitleEscrowContract, impersonateAccount, TestUsers } from "./utils";
 import { deployTitleEscrowFixture } from "./fixtures/deploy-title-escrow.fixture";
+import { computeInterfaceId } from "./utils/computeInterfaceId";
+import { ContractInterfaces } from "./fixtures/contract-interfaces.fixture";
 
 const { loadFixture } = waffle;
 
@@ -18,6 +20,17 @@ describe("Title Escrow", async () => {
   beforeEach(async () => {
     users = await getTestUsers();
     tokenId = faker.datatype.hexaDecimal(64);
+  });
+
+  describe("ERC165 Support", () => {
+    it("should support ITitleEscrow interface", async () => {
+      const interfaceId = computeInterfaceId(ContractInterfaces.ITitleEscrow);
+      const titleEscrowContract = await loadFixture(deployTitleEscrowFixture({ deployer: users.carrier }));
+
+      const res = await titleEscrowContract.supportsInterface(interfaceId);
+
+      expect(res).to.be.true;
+    });
   });
 
   describe("Receiving Token", () => {

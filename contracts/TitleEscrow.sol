@@ -5,10 +5,11 @@ import "@openzeppelin/contracts/utils/Context.sol";
 import "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
+import "@openzeppelin/contracts/interfaces/IERC165.sol";
 import "./interfaces/ITitleEscrow.sol";
 import "./interfaces/ITradeTrustERC721.sol";
 
-contract TitleEscrow is ITitleEscrow, Initializable {
+contract TitleEscrow is IERC165, ITitleEscrow, Initializable {
   address public override registry;
   uint256 public override tokenId;
 
@@ -49,6 +50,10 @@ contract TitleEscrow is ITitleEscrow, Initializable {
     beneficiary = _beneficiary;
     holder = _holder;
     tokenId = _tokenId;
+  }
+
+  function supportsInterface(bytes4 interfaceId) public view virtual override returns (bool) {
+    return interfaceId == type(ITitleEscrow).interfaceId;
   }
 
   function onERC721Received(

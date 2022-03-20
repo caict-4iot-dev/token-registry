@@ -13,24 +13,21 @@ import "./interfaces/ITitleEscrowFactory.sol";
 contract TradeTrustERC721 is ITradeTrustERC721, RegistryAccess, Pausable, ERC721 {
   using Address for address;
 
-  event TokenBurnt(uint256 indexed tokenId);
+  event TokenBurnt(uint256 indexed tokenId, address indexed titleEscrow, address indexed burner);
   event TokenReceived(address indexed operator, address indexed from, uint256 indexed tokenId, bytes data);
   event TokenRestored(uint256 indexed tokenId, address indexed newOwner);
 
   address internal constant BURN_ADDRESS = 0x000000000000000000000000000000000000dEaD;
 
-  uint256 public birthBlock;
+  uint256 public genesisBlock;
   ITitleEscrowFactory public override titleEscrowFactory;
-
-  // Mapping from token ID to previously surrendered title escrow address
-  mapping(uint256 => address) internal _surrenderedOwners;
 
   constructor(
     string memory name,
     string memory symbol,
     address _titleEscrowFactory
   ) ERC721(name, symbol) {
-    birthBlock = block.number;
+    genesisBlock = block.number;
     titleEscrowFactory = ITitleEscrowFactory(_titleEscrowFactory);
   }
 
@@ -53,8 +50,11 @@ contract TradeTrustERC721 is ITradeTrustERC721, RegistryAccess, Pausable, ERC721
     uint256 _tokenId,
     bytes memory _data
   ) public override returns (bytes4) {
-    emit TokenReceived(_operator, _from, _tokenId, _data);
-    return this.onERC721Received.selector;
+//    address expectedOperator = titleEscrowFactory.getAddress(address(this), _tokenId);
+    //    require(_operator == expectedOperator, "TitleEscrow: Unexpected operator");
+    // TODO: Why event emit this event??
+    //    emit TokenReceived(_operator, _from, _tokenId, _data);
+    return IERC721Receiver.onERC721Received.selector;
   }
 
   /**
@@ -71,14 +71,14 @@ contract TradeTrustERC721 is ITradeTrustERC721, RegistryAccess, Pausable, ERC721
    * @param tokenId Token ID to be burnt
    */
   function destroyToken(uint256 tokenId) external override whenNotPaused onlyAccepter {
-    address escrowAddress = titleEscrowFactory.getAddress(address(this), tokenId);
+    address titleEscrow = titleEscrowFactory.getAddress(address(this), tokenId);
 
-    ITitleEscrow(escrowAddress).shred();
+    ITitleEscrow(titleEscrow).shred();
 
     // Burning token to 0xdead instead to show a differentiate state as address(0) is used for unminted tokens
     _registryTransferTo(BURN_ADDRESS, tokenId);
 
-    emit TokenBurnt(tokenId);
+    emit TokenBurnt(tokenId, titleEscrow, _msgSender());
   }
 
   function mintTitle(
@@ -94,15 +94,16 @@ contract TradeTrustERC721 is ITradeTrustERC721, RegistryAccess, Pausable, ERC721
   function restoreTitle(uint256 tokenId) external override whenNotPaused onlyRestorer returns (address) {
     require(_exists(tokenId), "TokenRegistry: Token does not exist");
     require(isSurrendered(tokenId), "TokenRegistry: Token is not surrendered");
+    require(ownerOf(tokenId) != BURN_ADDRESS, "TokenRegistry: Token is already burnt");
 
-    address escrowAddress = titleEscrowFactory.getAddress(address(this), tokenId);
+    address titleEscrow = titleEscrowFactory.getAddress(address(this), tokenId);
     //    require(escrowAddress.isContract(), "TokenRegistry: Escrow contract does not exist");
 
-    _registryTransferTo(escrowAddress, tokenId);
+    _registryTransferTo(titleEscrow, tokenId);
 
-    emit TokenRestored(tokenId, escrowAddress);
+    emit TokenRestored(tokenId, titleEscrow);
 
-    return escrowAddress;
+    return titleEscrow;
   }
 
   function isSurrendered(uint256 tokenId) public view returns (bool) {
