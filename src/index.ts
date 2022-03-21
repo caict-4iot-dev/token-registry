@@ -7,3 +7,5 @@ export {
   TitleEscrowFactory,
   TradeTrustERC721,
 } from "./contracts";
+
+export * as utils from "./utils";
