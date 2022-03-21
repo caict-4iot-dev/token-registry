@@ -3,6 +3,7 @@ import { TitleEscrow, TradeTrustERC721 } from "@tradetrust/contracts";
 import faker from "faker";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { Signer } from "ethers";
+import { FakeContract, MockContract, smock } from "@defi-wonderland/smock";
 import { expect } from ".";
 import { deployTokenFixture } from "./fixtures";
 import { getTestUsers, getTitleEscrowContract, impersonateAccount, TestUsers } from "./utils";
@@ -33,7 +34,7 @@ describe("Title Escrow", async () => {
     });
   });
 
-  describe("Receiving Token", () => {
+  describe("General Behaviours", () => {
     let deployer: SignerWithAddress;
     let titleEscrowContract: TitleEscrow;
 
@@ -86,16 +87,23 @@ describe("Title Escrow", async () => {
 
     describe("IERC721Receiver Behaviour", () => {
       let fakeAddress: string;
-      let fakeRegistry: SignerWithAddress;
+      let fakeRegistry: FakeContract<TradeTrustERC721>;
 
       beforeEach(async () => {
+        fakeRegistry = (await smock.fake("TradeTrustERC721")) as FakeContract<TradeTrustERC721>;
+        fakeRegistry.ownerOf.returns(titleEscrowContract.address);
         fakeAddress = ethers.utils.getAddress(faker.finance.ethereumAddress());
-        [fakeRegistry] = users.others;
+
+        await titleEscrowContract.initialize(
+          fakeRegistry.address,
+          users.beneficiary.address,
+          users.holder.address,
+          tokenId
+        );
       });
 
       it("should only be able to receive designated token ID", async () => {
         const wrongTokenId = faker.datatype.hexaDecimal(64);
-        await titleEscrowContract.initialize(fakeAddress, users.beneficiary.address, users.holder.address, tokenId);
 
         const tx = titleEscrowContract.onERC721Received(fakeAddress, fakeAddress, wrongTokenId, "0x00");
 
@@ -104,12 +112,6 @@ describe("Title Escrow", async () => {
 
       it("should only be able to receive from designated registry", async () => {
         const [, fakeWrongRegistry] = users.others;
-        await titleEscrowContract.initialize(
-          fakeRegistry.address,
-          users.beneficiary.address,
-          users.holder.address,
-          tokenId
-        );
 
         const tx = titleEscrowContract
           .connect(fakeWrongRegistry)
@@ -119,15 +121,13 @@ describe("Title Escrow", async () => {
       });
 
       it("should emit TokenReceived event when successfully receiving token", async () => {
-        await titleEscrowContract.initialize(
-          fakeRegistry.address,
-          users.beneficiary.address,
-          users.holder.address,
-          tokenId
-        );
+        await users.carrier.sendTransaction({
+          to: fakeRegistry.address,
+          value: ethers.utils.parseEther("0.1"),
+        });
 
         const tx = await titleEscrowContract
-          .connect(fakeRegistry)
+          .connect(fakeRegistry.wallet)
           .onERC721Received(fakeAddress, fakeAddress, tokenId, "0x00");
 
         expect(tx).to.emit(titleEscrowContract, "TokenReceived").withArgs(fakeRegistry.address, tokenId);
@@ -165,6 +165,106 @@ describe("Title Escrow", async () => {
         const res = await titleEscrowOwnerContract.isHoldingToken();
 
         expect(res).to.be.false;
+      });
+    });
+
+    describe("Active Status", () => {
+      it("should return false before being initialised", async () => {
+        const res = await titleEscrowContract.active();
+
+        expect(res).to.be.false;
+      });
+
+      it("should return true after being initialised", async () => {
+        const fakeRegistry = (await smock.fake("TradeTrustERC721")) as FakeContract<TradeTrustERC721>;
+        fakeRegistry.ownerOf.returns(titleEscrowContract.address);
+        await titleEscrowContract.initialize(
+          fakeRegistry.address,
+          users.beneficiary.address,
+          users.holder.address,
+          tokenId
+        );
+
+        const res = await titleEscrowContract.active();
+
+        expect(res).to.be.true;
+      });
+
+      describe("When title escrow is not active", () => {
+        let fakeAddress: string;
+        let fakeRegistry: FakeContract<TradeTrustERC721>;
+        let mockTitleEscrowContract: MockContract<TitleEscrow>;
+
+        beforeEach(async () => {
+          fakeAddress = ethers.utils.getAddress(faker.finance.ethereumAddress());
+          fakeRegistry = (await smock.fake("TradeTrustERC721")) as FakeContract<TradeTrustERC721>;
+          mockTitleEscrowContract = (await (
+            await smock.mock("TitleEscrow")
+          ).deploy()) as unknown as MockContract<TitleEscrow>;
+
+          await mockTitleEscrowContract.initialize(
+            fakeRegistry.address,
+            users.beneficiary.address,
+            users.beneficiary.address,
+            tokenId
+          );
+          await mockTitleEscrowContract.setVariable("active", false);
+          fakeRegistry.ownerOf.returns(mockTitleEscrowContract.address);
+        });
+
+        it("should revert when calling: onERC721Received", async () => {
+          const tx = mockTitleEscrowContract.onERC721Received(fakeAddress, fakeAddress, tokenId, "0x00");
+
+          await expect(tx).to.be.revertedWith("TitleEscrow: Inactive");
+        });
+
+        it("should revert when calling: nominateBeneficiary", async () => {
+          const tx = mockTitleEscrowContract.connect(users.beneficiary).nominateBeneficiary(fakeAddress);
+
+          await expect(tx).to.be.revertedWith("TitleEscrow: Inactive");
+        });
+
+        it("should revert when calling: nominateHolder", async () => {
+          const tx = mockTitleEscrowContract.connect(users.beneficiary).nominateHolder(fakeAddress);
+
+          await expect(tx).to.be.revertedWith("TitleEscrow: Inactive");
+        });
+
+        it("should revert when calling: nominate", async () => {
+          const tx = mockTitleEscrowContract.connect(users.beneficiary).nominate(fakeAddress, fakeAddress);
+
+          await expect(tx).to.be.revertedWith("TitleEscrow: Inactive");
+        });
+
+        it("should revert when calling: endorseBeneficiary", async () => {
+          const tx = mockTitleEscrowContract.connect(users.beneficiary).endorseBeneficiary(fakeAddress);
+
+          await expect(tx).to.be.revertedWith("TitleEscrow: Inactive");
+        });
+
+        it("should revert when calling: endorseHolder", async () => {
+          const tx = mockTitleEscrowContract.connect(users.beneficiary).endorseHolder(fakeAddress);
+
+          await expect(tx).to.be.revertedWith("TitleEscrow: Inactive");
+        });
+
+        it("should revert when calling: endorse", async () => {
+          const tx = mockTitleEscrowContract.connect(users.beneficiary).endorse(fakeAddress, fakeAddress);
+
+          await expect(tx).to.be.revertedWith("TitleEscrow: Inactive");
+        });
+
+        it("should revert when calling: shred", async () => {
+          const tx = mockTitleEscrowContract.connect(users.beneficiary).shred();
+
+          await expect(tx).to.be.revertedWith("TitleEscrow: Inactive");
+        });
+
+        it("should not revert when calling: isHoldingToken", async () => {
+          const res = await mockTitleEscrowContract.isHoldingToken();
+
+          expect(res).to.be.true;
+        });
       });
     });
   });
@@ -758,13 +858,49 @@ describe("Title Escrow", async () => {
         await expect(tx).to.be.revertedWith("TitleEscrow: Caller is not registry");
       });
 
-      it("should self destruct", async () => {
+      it("should reset nominated beneficiary", async () => {
         await titleEscrowOwnerContract.connect(users.beneficiary).surrender();
 
         await titleEscrowOwnerContract.connect(registrySigner).shred();
-        const res = await ethers.provider.getCode(titleEscrowOwnerContract.address);
+        const res = await titleEscrowOwnerContract.nominatedBeneficiary();
 
-        expect(res).to.equal("0x");
+        expect(res).to.equal(ethers.constants.AddressZero);
+      });
+
+      it("should reset nominated holder", async () => {
+        await titleEscrowOwnerContract.connect(users.beneficiary).surrender();
+
+        await titleEscrowOwnerContract.connect(registrySigner).shred();
+        const res = await titleEscrowOwnerContract.nominatedHolder();
+
+        expect(res).to.equal(ethers.constants.AddressZero);
+      });
+
+      it("should reset beneficiary", async () => {
+        await titleEscrowOwnerContract.connect(users.beneficiary).surrender();
+
+        await titleEscrowOwnerContract.connect(registrySigner).shred();
+        const res = await titleEscrowOwnerContract.beneficiary();
+
+        expect(res).to.equal(ethers.constants.AddressZero);
+      });
+
+      it("should reset holder", async () => {
+        await titleEscrowOwnerContract.connect(users.beneficiary).surrender();
+
+        await titleEscrowOwnerContract.connect(registrySigner).shred();
+        const res = await titleEscrowOwnerContract.holder();
+
+        expect(res).to.equal(ethers.constants.AddressZero);
+      });
+
+      it("should set active status to false", async () => {
+        await titleEscrowOwnerContract.connect(users.beneficiary).surrender();
+
+        await titleEscrowOwnerContract.connect(registrySigner).shred();
+        const res = await titleEscrowOwnerContract.active();
+
+        expect(res).to.false;
       });
 
       it("should emit Shred event", async () => {

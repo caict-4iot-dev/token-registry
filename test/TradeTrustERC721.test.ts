@@ -122,10 +122,13 @@ describe("TradeTrustERC721", async () => {
         });
 
         it("should shred the correct title escrow", async () => {
-          await registryContractAsAdmin.destroyToken(tokenId);
-          const res = await ethers.provider.getCode(titleEscrowContract.address);
+          const initialActive = await titleEscrowContract.active();
 
-          expect(res).to.equal("0x");
+          await registryContractAsAdmin.destroyToken(tokenId);
+          const currentActive = await titleEscrowContract.active();
+
+          expect(initialActive).to.be.true;
+          expect(currentActive).to.be.false;
         });
 
         it("should transfer token to burn address", async () => {

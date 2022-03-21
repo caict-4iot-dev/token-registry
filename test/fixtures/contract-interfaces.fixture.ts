@@ -14,6 +14,7 @@ export const ContractInterfaces = {
     "endorse(address,address)",
     "beneficiary()",
     "holder()",
+    "active()",
     "nominatedBeneficiary()",
     "nominatedHolder()",
     "registry()",

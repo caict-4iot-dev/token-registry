@@ -49,6 +49,8 @@ interface ITitleEscrow is IERC721Receiver {
 
   function holder() external view returns (address);
 
+  function active() external view returns (bool);
+
   function nominatedBeneficiary() external view returns (address);
 
   function nominatedHolder() external view returns (address);
