@@ -7,6 +7,8 @@ import { expect } from ".";
 import { deployEscrowFactoryFixture } from "./fixtures";
 import { getEventFromTransaction, getTestUsers, TestUsers } from "./utils";
 import { computeTitleEscrowAddress } from "../src/utils";
+import { computeInterfaceId } from "./utils/computeInterfaceId";
+import { ContractInterfaces } from "./fixtures/contract-interfaces.fixture";
 
 const { loadFixture } = waffle;
 
@@ -23,6 +25,60 @@ describe("TitleEscrowFactory", async () => {
     users = await getTestUsers();
 
     titleEscrowFactory = await loadFixture(deployEscrowFactoryFixture({ deployer: users.carrier }));
+  });
+
+  describe("Implementation", () => {
+    let implAddr: string;
+    let titleEscrowContract: TitleEscrow;
+
+    beforeEach(async () => {
+      implAddr = await titleEscrowFactory.implementation();
+      titleEscrowContract = (await ethers.getContractFactory("TitleEscrow")).attach(implAddr) as TitleEscrow;
+    });
+
+    it("should have an implementation", async () => {
+      expect(implAddr).to.not.equal(ethers.constants.AddressZero);
+    });
+
+    it("should have the correct title escrow implementation", async () => {
+      const interfaceId = computeInterfaceId(ContractInterfaces.ITitleEscrow);
+
+      const res = await titleEscrowContract.supportsInterface(interfaceId);
+
+      expect(res).to.be.true;
+    });
+
+    it("should initialise implementation", async () => {
+      const zeroAddress = ethers.constants.AddressZero;
+      const [registry, beneficiary, holder, tokenId] = await Promise.all([
+        titleEscrowContract.registry(),
+        titleEscrowContract.beneficiary(),
+        titleEscrowContract.holder(),
+        titleEscrowContract.tokenId(),
+      ]);
+
+      expect(registry).to.equal(zeroAddress);
+      expect(beneficiary).to.equal(zeroAddress);
+      expect(holder).to.equal(zeroAddress);
+      expect(tokenId).to.equal(ethers.constants.HashZero);
+    });
+
+    it("should not allow initialising implementation externally", async () => {
+      const punk = users.others[faker.datatype.number(users.others.length - 1)];
+      const badAddress = faker.finance.ethereumAddress();
+
+      const tx = titleEscrowContract.connect(punk).initialize(badAddress, badAddress, badAddress, "123");
+
+      await expect(tx).to.be.revertedWith("Initializable: contract is already initialized");
+    });
+
+    it("should not allow calling shred on implementation", async () => {
+      const punk = users.others[faker.datatype.number(users.others.length - 1)];
+
+      const tx = titleEscrowContract.connect(punk).shred();
+
+      await expect(tx).to.be.reverted;
+    });
   });
 
   describe("Create Title Escrow Contract", () => {

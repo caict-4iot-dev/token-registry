@@ -10,6 +10,7 @@ contract TitleEscrowFactory is ITitleEscrowFactory {
 
   constructor() {
     implementation = address(new TitleEscrow());
+    TitleEscrow(implementation).initialize(address(0), address(0), address(0), 0x00);
   }
 
   function create(
