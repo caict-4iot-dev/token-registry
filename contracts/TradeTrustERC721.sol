@@ -1,17 +1,18 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
-import "@openzeppelin/contracts/utils/Address.sol";
-import "@openzeppelin/contracts/security/Pausable.sol";
-import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
+//import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC721/IERC721ReceiverUpgradeable.sol";
 import "./access/RegistryAccess.sol";
 import "./interfaces/ITitleEscrow.sol";
 import "./interfaces/ITradeTrustERC721.sol";
 import "./interfaces/ITitleEscrowFactory.sol";
 
-contract TradeTrustERC721 is ITradeTrustERC721, RegistryAccess, Pausable, ERC721 {
-  using Address for address;
+contract TradeTrustERC721 is ITradeTrustERC721, RegistryAccess, PausableUpgradeable, ERC721Upgradeable {
+  using AddressUpgradeable for address;
 
   event TokenBurnt(uint256 indexed tokenId, address indexed titleEscrow, address indexed burner);
   event TokenReceived(address indexed operator, address indexed from, uint256 indexed tokenId, bytes data);
@@ -26,8 +27,19 @@ contract TradeTrustERC721 is ITradeTrustERC721, RegistryAccess, Pausable, ERC721
     string memory name,
     string memory symbol,
     address _titleEscrowFactory
-  ) ERC721(name, symbol) {
+  ) {
     genesisBlock = block.number;
+    initialize(name, symbol, _titleEscrowFactory);
+  }
+
+  function initialize(
+    string memory name,
+    string memory symbol,
+    address _titleEscrowFactory
+  ) internal initializer {
+    __ERC721_init(name, symbol);
+    __Pausable_init();
+    __RegistryAccess_init();
     titleEscrowFactory = ITitleEscrowFactory(_titleEscrowFactory);
   }
 
@@ -35,12 +47,12 @@ contract TradeTrustERC721 is ITradeTrustERC721, RegistryAccess, Pausable, ERC721
     public
     view
     virtual
-    override(ERC721, IERC165, RegistryAccess)
+    override(ERC721Upgradeable, IERC165Upgradeable, RegistryAccess)
     returns (bool)
   {
     return
       interfaceId == type(ITradeTrustERC721).interfaceId ||
-      ERC721.supportsInterface(interfaceId) ||
+      ERC721Upgradeable.supportsInterface(interfaceId) ||
       RegistryAccess.supportsInterface(interfaceId);
   }
 
