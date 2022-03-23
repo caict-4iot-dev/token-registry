@@ -3,7 +3,6 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/proxy/Clones.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "./interfaces/IInitializable.sol";
 
 contract ImplDeployer is Ownable {
   event Deployment(address indexed deployed, address indexed implementation, bytes params);
@@ -14,19 +13,21 @@ contract ImplDeployer is Ownable {
     require(implementations[implementation], "ImplDeployer: Not whitelisted");
 
     address deployed = Clones.clone(implementation);
-    IInitializable(deployed).initialize(params);
+    bytes memory payload = abi.encodeWithSignature("initialize(bytes)", params);
+    (bool success, ) = address(deployed).call(payload);
+    require(success, "ImplDeployer: Init fail");
 
     emit Deployment(deployed, implementation, params);
 
     return deployed;
   }
 
-  function addImpl(address implementation) external onlyOwner {
+  function addImplementation(address implementation) external onlyOwner {
     require(!implementations[implementation], "ImplDeployer: Already added");
     implementations[implementation] = true;
   }
 
-  function removeImpl(address implementation) external onlyOwner {
+  function removeImplementation(address implementation) external onlyOwner {
     delete implementations[implementation];
   }
 }

@@ -44,7 +44,7 @@ describe("ImplDeployer", async () => {
   describe("Implementation Administration", () => {
     describe("Adding Implementation", () => {
       beforeEach(async () => {
-        await deployerContractAsOwner.addImpl(implContract.address);
+        await deployerContractAsOwner.addImplementation(implContract.address);
       });
 
       it("should add implementation correctly", async () => {
@@ -54,13 +54,13 @@ describe("ImplDeployer", async () => {
       });
 
       it("should not allow adding an already added implementation", async () => {
-        const tx = deployerContractAsOwner.addImpl(implContract.address);
+        const tx = deployerContractAsOwner.addImplementation(implContract.address);
 
         await expect(tx).to.be.revertedWith("ImplDeployer: Already added");
       });
 
       it("should not allow non-owner to add implementation", async () => {
-        const tx = deployerContractAsNonOwner.addImpl(implContract.address);
+        const tx = deployerContractAsNonOwner.addImplementation(implContract.address);
 
         await expect(tx).to.be.revertedWith("Ownable: caller is not the owner");
       });
@@ -68,10 +68,10 @@ describe("ImplDeployer", async () => {
 
     describe("Removing Implementation", () => {
       it("should remove implementation correctly", async () => {
-        await deployerContractAsOwner.addImpl(implContract.address);
+        await deployerContractAsOwner.addImplementation(implContract.address);
         const initialRes = await deployerContract.implementations(implContract.address);
 
-        await deployerContractAsOwner.removeImpl(implContract.address);
+        await deployerContractAsOwner.removeImplementation(implContract.address);
         const currentRes = await deployerContract.implementations(implContract.address);
 
         expect(initialRes).to.be.true;
@@ -79,7 +79,7 @@ describe("ImplDeployer", async () => {
       });
 
       it("should not allow non-owner to remove implementation", async () => {
-        const tx = deployerContractAsNonOwner.removeImpl(implContract.address);
+        const tx = deployerContractAsNonOwner.removeImplementation(implContract.address);
 
         await expect(tx).to.be.revertedWith("Ownable: caller is not the owner");
       });
@@ -98,7 +98,7 @@ describe("ImplDeployer", async () => {
       fakeTitleEscrowFactoryAddr = ethers.utils.getAddress(faker.finance.ethereumAddress());
       registryAdmin = users.others[faker.datatype.number(users.others.length - 1)];
 
-      await deployerContractAsOwner.addImpl(implContract.address);
+      await deployerContractAsOwner.addImplementation(implContract.address);
     });
 
     it("should not allow non-whitelisted implementations", async () => {
@@ -123,7 +123,7 @@ describe("ImplDeployer", async () => {
       });
       const tx = deployerContractAsNonOwner.create(implContract.address, initParams);
 
-      await expect(tx).to.be.revertedWith("RegistryAccess: Deployer is zero");
+      await expect(tx).to.be.revertedWith("ImplDeployer: Init fail");
     });
 
     describe("Creation", () => {
