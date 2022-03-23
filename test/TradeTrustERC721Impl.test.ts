@@ -4,7 +4,7 @@ import { TradeTrustERC721Impl } from "@tradetrust/contracts";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from ".";
 import { getTestUsers, TestUsers } from "./utils";
-import { deployRegistryImplFixture } from "./fixtures";
+import { deployTradeTrustERC721ImplFixture } from "./fixtures";
 import { encodeInitParams } from "../src/utils";
 
 const { loadFixture } = waffle;
@@ -29,7 +29,7 @@ describe("TradeTrustERC721Impl", async () => {
     registrySymbol = "GSC";
     fakeTitleEscrowFactory = ethers.utils.getAddress(faker.finance.ethereumAddress());
 
-    registryImplContract = await loadFixture(deployRegistryImplFixture({ deployer }));
+    registryImplContract = await loadFixture(deployTradeTrustERC721ImplFixture({ deployer }));
   });
 
   describe("Initialisation", () => {

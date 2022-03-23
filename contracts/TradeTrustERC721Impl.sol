@@ -2,8 +2,9 @@
 pragma solidity ^0.8.0;
 
 import "./TradeTrustERC721Base.sol";
+import "./interfaces/IInitializable.sol";
 
-contract TradeTrustERC721Impl is TradeTrustERC721Base {
+contract TradeTrustERC721Impl is IInitializable, TradeTrustERC721Base {
   address internal _titleEscrowFactory;
   uint256 internal _genesis;
 
