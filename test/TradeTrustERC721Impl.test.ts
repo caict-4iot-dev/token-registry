@@ -2,6 +2,7 @@ import { ethers, waffle } from "hardhat";
 import faker from "faker";
 import { TradeTrustERC721Impl } from "@tradetrust/contracts";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
+import { ContractTransaction } from "ethers";
 import { expect } from ".";
 import { getTestUsers, TestUsers } from "./utils";
 import { deployTradeTrustERC721ImplFixture } from "./fixtures";
@@ -30,6 +31,32 @@ describe("TradeTrustERC721Impl", async () => {
     fakeTitleEscrowFactory = ethers.utils.getAddress(faker.finance.ethereumAddress());
 
     registryImplContract = await loadFixture(deployTradeTrustERC721ImplFixture({ deployer }));
+  });
+
+  describe("Properties", () => {
+    let initTx: ContractTransaction;
+    beforeEach(async () => {
+      const initParams = encodeInitParams({
+        name: registryName,
+        symbol: registrySymbol,
+        titleEscrowFactory: fakeTitleEscrowFactory,
+        deployer: users.carrier.address,
+      });
+
+      initTx = await registryImplContract.connect(initialiserSigner).initialize(initParams);
+    });
+
+    it("should return titleEscrowFactory address", async () => {
+      const res = await registryImplContract.titleEscrowFactory();
+
+      expect(res).to.equal(fakeTitleEscrowFactory);
+    });
+
+    it("should return the initialisation block as genesis", async () => {
+      const res = await registryImplContract.genesis();
+
+      expect(res).to.equal(initTx.blockNumber);
+    });
   });
 
   describe("Initialisation", () => {
