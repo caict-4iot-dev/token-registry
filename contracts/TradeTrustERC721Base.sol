@@ -10,9 +10,9 @@ import "./interfaces/ITitleEscrow.sol";
 import "./interfaces/ITitleEscrowFactory.sol";
 
 abstract contract TradeTrustERC721Base is ITradeTrustERC721, RegistryAccess, PausableUpgradeable, ERC721Upgradeable {
-  event TokenBurnt(uint256 indexed tokenId, address indexed titleEscrow, address indexed burner);
-  event TokenReceived(address indexed operator, address indexed from, uint256 indexed tokenId, bytes data);
-  event TokenRestored(uint256 indexed tokenId, address indexed newOwner);
+//  event TokenBurnt(uint256 indexed tokenId, address indexed titleEscrow, address indexed burner);
+//  event TokenReceived(address indexed operator, address indexed from, uint256 indexed tokenId, bytes data);
+//  event TokenRestored(uint256 indexed tokenId, address indexed newOwner);
 
   address internal constant BURN_ADDRESS = 0x000000000000000000000000000000000000dEaD;
 
@@ -60,7 +60,7 @@ abstract contract TradeTrustERC721Base is ITradeTrustERC721, RegistryAccess, Pau
     // Burning token to 0xdead instead to show a differentiate state as address(0) is used for unminted tokens
     _registryTransferTo(BURN_ADDRESS, tokenId);
 
-    emit TokenBurnt(tokenId, titleEscrow, _msgSender());
+//    emit TokenBurnt(tokenId, titleEscrow, _msgSender());
   }
 
   function mint(
@@ -68,27 +68,27 @@ abstract contract TradeTrustERC721Base is ITradeTrustERC721, RegistryAccess, Pau
     address holder,
     uint256 tokenId
   ) public virtual override whenNotPaused onlyMinter returns (address) {
-    require(!_exists(tokenId), "TokenRegistry: Token already exists");
+    require(!_exists(tokenId), "Registry: Token exists");
 
     return _mintTitle(beneficiary, holder, tokenId);
   }
 
   function restore(uint256 tokenId) external override whenNotPaused onlyRestorer returns (address) {
-    require(_exists(tokenId), "TokenRegistry: Token does not exist");
-    require(isSurrendered(tokenId), "TokenRegistry: Token is not surrendered");
-    require(ownerOf(tokenId) != BURN_ADDRESS, "TokenRegistry: Token is already burnt");
+    require(_exists(tokenId), "Registry: Invalid token");
+    require(isSurrendered(tokenId), "Registry: Not surrendered");
+    require(ownerOf(tokenId) != BURN_ADDRESS, "Registry: Token burnt");
 
     address titleEscrow = titleEscrowFactory().getAddress(address(this), tokenId);
 
     _registryTransferTo(titleEscrow, tokenId);
 
-    emit TokenRestored(tokenId, titleEscrow);
+//    emit TokenRestored(tokenId, titleEscrow);
 
     return titleEscrow;
   }
 
   function isSurrendered(uint256 tokenId) public view returns (bool) {
-    require(_exists(tokenId), "TokenRegistry: Token does not exist");
+    require(_exists(tokenId), "Registry: Invalid token");
     address owner = ownerOf(tokenId);
     return owner == address(this) || owner == BURN_ADDRESS;
   }
@@ -107,7 +107,7 @@ abstract contract TradeTrustERC721Base is ITradeTrustERC721, RegistryAccess, Pau
     uint256 tokenId
   ) internal virtual override whenNotPaused {
     if (to == BURN_ADDRESS) {
-      require(isSurrendered(tokenId), "TokenRegistry: Token has not been surrendered");
+      require(isSurrendered(tokenId), "Registry: Token unsurrendered");
     }
     super._beforeTokenTransfer(from, to, tokenId);
   }
