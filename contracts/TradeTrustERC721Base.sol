@@ -25,7 +25,7 @@ abstract contract TradeTrustERC721Base is ITradeTrustERC721, RegistryAccess, Pau
     string memory name,
     string memory symbol,
     address deployer
-  ) internal initializer {
+  ) internal onlyInitializing {
     __ERC721_init(name, symbol);
     __Pausable_init();
     __RegistryAccess_init(deployer);

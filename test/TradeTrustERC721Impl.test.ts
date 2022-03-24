@@ -7,11 +7,13 @@ import { expect } from ".";
 import { getTestUsers, TestUsers } from "./utils";
 import { deployTradeTrustERC721ImplFixture } from "./fixtures";
 import { encodeInitParams } from "../src/utils";
+import { deployImplProxy } from "./fixtures/deploy-impl-proxy.fixture";
 
 const { loadFixture } = waffle;
 
 describe("TradeTrustERC721Impl", async () => {
   let users: TestUsers;
+  let implContract: TradeTrustERC721Impl;
   let registryImplContract: TradeTrustERC721Impl;
 
   let registryName: string;
@@ -30,13 +32,21 @@ describe("TradeTrustERC721Impl", async () => {
     registrySymbol = "GSC";
     fakeTitleEscrowFactory = ethers.utils.getAddress(faker.finance.ethereumAddress());
 
-    registryImplContract = await loadFixture(deployTradeTrustERC721ImplFixture({ deployer }));
+    implContract = await loadFixture(deployTradeTrustERC721ImplFixture({ deployer }));
+    registryImplContract = await loadFixture(
+      deployImplProxy<TradeTrustERC721Impl>({
+        implementation: implContract,
+        deployer: users.carrier,
+      })
+    );
   });
 
-  describe("Properties", () => {
+  describe("Contract Creation", () => {
     let initTx: ContractTransaction;
+    let initParams: string;
+
     beforeEach(async () => {
-      const initParams = encodeInitParams({
+      initParams = encodeInitParams({
         name: registryName,
         symbol: registrySymbol,
         titleEscrowFactory: fakeTitleEscrowFactory,
@@ -44,6 +54,19 @@ describe("TradeTrustERC721Impl", async () => {
       });
 
       initTx = await registryImplContract.connect(initialiserSigner).initialize(initParams);
+    });
+
+    it("should initialise implementation", async () => {
+      const tx = implContract.initialize(initParams);
+
+      expect(tx).to.be.revertedWith("Initializable: contract is already initialized");
+    });
+
+    it("should not set deployer as admin", async () => {
+      const adminRole = await implContract.DEFAULT_ADMIN_ROLE();
+      const res = await implContract.hasRole(adminRole, users.carrier.address);
+
+      await expect(res).to.be.false;
     });
 
     it("should return titleEscrowFactory address", async () => {

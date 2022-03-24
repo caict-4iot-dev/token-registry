@@ -7,14 +7,10 @@ import { expect } from ".";
 import { getEventFromTransaction, getTestUsers, TestUsers } from "./utils";
 import { computeInterfaceId } from "./utils/computeInterfaceId";
 import { ContractInterfaces } from "./fixtures/contract-interfaces.fixture";
-import { deployTradeTrustERC721ImplFixture } from "./fixtures";
+import { deployImplDeployerFixture, deployTradeTrustERC721ImplFixture } from "./fixtures";
 import { encodeInitParams } from "../src/utils";
 
 const { loadFixture } = waffle;
-
-const deployImplDeployer = (deployer: SignerWithAddress) => async () => {
-  return (await (await ethers.getContractFactory("ImplDeployer")).connect(deployer).deploy()) as ImplDeployer;
-};
 
 describe("ImplDeployer", async () => {
   let users: TestUsers;
@@ -34,7 +30,7 @@ describe("ImplDeployer", async () => {
 
     [implContract, deployerContract] = await Promise.all([
       loadFixture(deployTradeTrustERC721ImplFixture({ deployer })),
-      loadFixture(deployImplDeployer(deployer)),
+      loadFixture(deployImplDeployerFixture({ deployer })),
     ]);
 
     deployerContractAsOwner = deployerContract.connect(deployer);
@@ -86,7 +82,7 @@ describe("ImplDeployer", async () => {
     });
   });
 
-  describe("Deployment", () => {
+  describe("Deployment Behaviours", () => {
     let fakeTokenName: string;
     let fakeTokenSymbol: string;
     let fakeTitleEscrowFactoryAddr: string;
@@ -126,7 +122,7 @@ describe("ImplDeployer", async () => {
       await expect(tx).to.be.revertedWith("ImplDeployer: Init fail");
     });
 
-    describe("Creation", () => {
+    describe("Deploy", () => {
       let createTx: ContractTransaction;
       let clonedRegistryContract: TradeTrustERC721Impl;
       let initParams: string;
