@@ -4,7 +4,7 @@ export const ContractInterfaces = {
     "titleEscrowFactory()",
     "burn(uint256)",
     "restore(uint256)",
-    "mintTitle(address,address,uint256)",
+    "mint(address,address,uint256)",
   ],
   ITitleEscrow: [
     "nominateBeneficiary(address)",

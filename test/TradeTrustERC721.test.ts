@@ -110,7 +110,7 @@ describe("TradeTrustERC721", async () => {
     let titleEscrowContract: TitleEscrow;
 
     beforeEach(async () => {
-      await registryContractAsAdmin.mintTitle(users.beneficiary.address, users.beneficiary.address, tokenId);
+      await registryContractAsAdmin.mint(users.beneficiary.address, users.beneficiary.address, tokenId);
       titleEscrowContract = await getTitleEscrowContract(registryContract, tokenId);
     });
 
@@ -220,13 +220,13 @@ describe("TradeTrustERC721", async () => {
         await titleEscrowContract.connect(users.beneficiary).surrender();
         await registryContractAsAdmin.burn(tokenId);
 
-        const tx = registryContractAsAdmin.mintTitle(users.beneficiary.address, users.beneficiary.address, tokenId);
+        const tx = registryContractAsAdmin.mint(users.beneficiary.address, users.beneficiary.address, tokenId);
 
         await expect(tx).to.be.revertedWith("TokenRegistry: Token already exists");
       });
 
       it("should not allow minting an existing token", async () => {
-        const tx = registryContractAsAdmin.mintTitle(users.beneficiary.address, users.beneficiary.address, tokenId);
+        const tx = registryContractAsAdmin.mint(users.beneficiary.address, users.beneficiary.address, tokenId);
 
         await expect(tx).to.be.revertedWith("TokenRegistry: Token already exists");
       });
@@ -245,7 +245,7 @@ describe("TradeTrustERC721", async () => {
 
       it("should emit Transfer event with correct values", async () => {
         tokenId = faker.datatype.hexaDecimal(64);
-        const tx = await registryContractAsAdmin.mintTitle(users.beneficiary.address, users.holder.address, tokenId);
+        const tx = await registryContractAsAdmin.mint(users.beneficiary.address, users.holder.address, tokenId);
         titleEscrowContract = await getTitleEscrowContract(registryContract, tokenId);
 
         expect(tx)

@@ -14,7 +14,7 @@ interface ITradeTrustERC721 is IERC721ReceiverUpgradeable, IERC721Upgradeable {
 
   function restore(uint256 tokenId) external returns (address);
 
-  function mintTitle(
+  function mint(
     address beneficiary,
     address holder,
     uint256 tokenId

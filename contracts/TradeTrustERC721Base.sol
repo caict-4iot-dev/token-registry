@@ -63,7 +63,7 @@ abstract contract TradeTrustERC721Base is ITradeTrustERC721, RegistryAccess, Pau
     emit TokenBurnt(tokenId, titleEscrow, _msgSender());
   }
 
-  function mintTitle(
+  function mint(
     address beneficiary,
     address holder,
     uint256 tokenId

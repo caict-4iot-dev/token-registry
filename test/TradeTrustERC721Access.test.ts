@@ -115,13 +115,13 @@ describe("TradeTrustERC721 Access Control Behaviour", async () => {
 
   describe("Minter Role", () => {
     it("should allow a minter to mint new tokens", async () => {
-      const tx = registryContractAsMinter.mintTitle(users.beneficiary.address, users.holder.address, tokenId);
+      const tx = registryContractAsMinter.mint(users.beneficiary.address, users.holder.address, tokenId);
 
       await expect(tx).to.not.be.reverted;
     });
 
     it("should not allow a non-minter to mint new tokens", async () => {
-      const tx = registryContractAsNoRole.mintTitle(users.beneficiary.address, users.holder.address, tokenId);
+      const tx = registryContractAsNoRole.mint(users.beneficiary.address, users.holder.address, tokenId);
 
       await expect(tx).to.be.revertedWith("RegistryAccess: caller does not have the Minter role");
     });
