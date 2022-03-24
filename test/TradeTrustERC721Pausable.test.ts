@@ -51,7 +51,7 @@ describe("TradeTrustERC721 Pausable Behaviour", async () => {
       it("should not allow non-admin to unpause", async () => {
         const tx = registryContractAsNonAdmin.unpause();
 
-        await expect(tx).to.be.revertedWith("RegistryAccess: caller does not have the Admin role");
+        await expect(tx).to.be.revertedWith("RegAcc: Not Admin");
       });
     });
 
@@ -73,7 +73,7 @@ describe("TradeTrustERC721 Pausable Behaviour", async () => {
       it("should not allow non-admin to pause", async () => {
         const tx = registryContractAsNonAdmin.pause();
 
-        await expect(tx).to.be.revertedWith("RegistryAccess: caller does not have the Admin role");
+        await expect(tx).to.be.revertedWith("RegAcc: Not Admin");
       });
     });
   });
