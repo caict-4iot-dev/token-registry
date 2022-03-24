@@ -52,7 +52,7 @@ abstract contract TradeTrustERC721Base is ITradeTrustERC721, RegistryAccess, Pau
     return IERC721Receiver.onERC721Received.selector;
   }
 
-  function destroyToken(uint256 tokenId) external override whenNotPaused onlyAccepter {
+  function burn(uint256 tokenId) external override whenNotPaused onlyAccepter {
     address titleEscrow = titleEscrowFactory().getAddress(address(this), tokenId);
 
     ITitleEscrow(titleEscrow).shred();

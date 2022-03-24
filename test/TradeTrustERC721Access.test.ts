@@ -171,13 +171,13 @@ describe("TradeTrustERC721 Access Control Behaviour", async () => {
     });
 
     it("should allow an accepter to burn tokens", async () => {
-      const tx = registryContractAsAccepter.destroyToken(tokenId);
+      const tx = registryContractAsAccepter.burn(tokenId);
 
       await expect(tx).to.not.be.reverted;
     });
 
     it("should not allow a non-accepter to burn tokens", async () => {
-      const tx = registryContractAsNoRole.destroyToken(tokenId);
+      const tx = registryContractAsNoRole.burn(tokenId);
 
       await expect(tx).to.be.revertedWith("RegistryAccess: caller does not have the Accepter role");
     });
