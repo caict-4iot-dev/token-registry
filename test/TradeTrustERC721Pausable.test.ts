@@ -141,7 +141,7 @@ describe("TradeTrustERC721 Pausable Behaviour", async () => {
         });
 
         it("should not allow restoring token", async () => {
-          const tx = registryContractAsAdmin.restoreTitle(tokenId);
+          const tx = registryContractAsAdmin.restore(tokenId);
 
           await expect(tx).to.be.revertedWith("Pausable: paused");
         });

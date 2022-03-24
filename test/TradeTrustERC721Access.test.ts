@@ -143,13 +143,13 @@ describe("TradeTrustERC721 Access Control Behaviour", async () => {
     });
 
     it("should allow a restorer to restore tokens", async () => {
-      const tx = registryContractAsRestorer.restoreTitle(tokenId);
+      const tx = registryContractAsRestorer.restore(tokenId);
 
       await expect(tx).to.not.be.reverted;
     });
 
     it("should not allow a non-restorer to restore tokens", async () => {
-      const tx = registryContractAsNoRole.restoreTitle(tokenId);
+      const tx = registryContractAsNoRole.restore(tokenId);
 
       await expect(tx).to.be.revertedWith("RegistryAccess: caller does not have the Restorer role");
     });

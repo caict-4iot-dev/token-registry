@@ -73,7 +73,7 @@ abstract contract TradeTrustERC721Base is ITradeTrustERC721, RegistryAccess, Pau
     return _mintTitle(beneficiary, holder, tokenId);
   }
 
-  function restoreTitle(uint256 tokenId) external override whenNotPaused onlyRestorer returns (address) {
+  function restore(uint256 tokenId) external override whenNotPaused onlyRestorer returns (address) {
     require(_exists(tokenId), "TokenRegistry: Token does not exist");
     require(isSurrendered(tokenId), "TokenRegistry: Token is not surrendered");
     require(ownerOf(tokenId) != BURN_ADDRESS, "TokenRegistry: Token is already burnt");

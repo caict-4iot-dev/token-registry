@@ -12,7 +12,7 @@ interface ITradeTrustERC721 is IERC721ReceiverUpgradeable, IERC721Upgradeable {
 
   function burn(uint256 tokenId) external;
 
-  function restoreTitle(uint256 tokenId) external returns (address);
+  function restore(uint256 tokenId) external returns (address);
 
   function mintTitle(
     address beneficiary,

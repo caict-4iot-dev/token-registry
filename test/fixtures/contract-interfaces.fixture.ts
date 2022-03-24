@@ -3,7 +3,7 @@ export const ContractInterfaces = {
     "genesis()",
     "titleEscrowFactory()",
     "burn(uint256)",
-    "restoreTitle(uint256)",
+    "restore(uint256)",
     "mintTitle(address,address,uint256)",
   ],
   ITitleEscrow: [
