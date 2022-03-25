@@ -3,6 +3,7 @@ import { TitleEscrowFactory } from "@tradetrust/contracts";
 import { verifyContract } from "./helpers/verify-contract";
 import { TASK_DEPLOY_ESCROW_FACTORY } from "./task-names";
 import { wait } from "./helpers/wait";
+import { deployContract } from "./helpers/deploy-contract";
 
 task(TASK_DEPLOY_ESCROW_FACTORY)
   .setDescription("Deploys a new Title Escrow factory")
@@ -15,8 +16,11 @@ task(TASK_DEPLOY_ESCROW_FACTORY)
 
       console.log(`[Deployer] ${deployerAddress}`);
 
-      const titleEscrowFacFactory = await ethers.getContractFactory("TitleEscrowFactory");
-      const titleEscrowFactoryContract = (await titleEscrowFacFactory.connect(deployer).deploy()) as TitleEscrowFactory;
+      const titleEscrowFactoryContract = await deployContract<TitleEscrowFactory>({
+        params: [],
+        contractName: "TitleEscrowFactory",
+        hre,
+      });
       const factoryDeployTx = titleEscrowFactoryContract.deployTransaction;
       console.log(`[Transaction] Pending ${factoryDeployTx.hash}`);
       await titleEscrowFactoryContract.deployed();
@@ -43,9 +47,9 @@ task(TASK_DEPLOY_ESCROW_FACTORY)
         });
       }
 
-      console.log(`[Status] Completed deploying Title Escrow Factory at ${factoryAddress}`);
+      console.log(`[Status] ✅ Completed deploying Title Escrow Factory at ${factoryAddress}`);
     } catch (err: any) {
-      console.log("[Status] An error occurred while deploying Title Escrow Factory");
-      console.error(err.message);
+      console.log("[Status] ❌ An error occurred while deploying Title Escrow Factory");
+      console.error(err.error?.message ?? err.message);
     }
   });
