@@ -13,8 +13,9 @@ export const RoleConstants = {
   RestorerRole: ethers.utils.id("RESTORER_ROLE"),
 };
 
-export const ContractAddress = {
+export const ContractAddress: Record<string, Record<number, string | undefined>> = {
   TitleEscrowFactory: {
+    [ChainId.Local]: AddressConstants.Zero,
     [ChainId.Ethereum]: AddressConstants.Zero,
     [ChainId.Rinkeby]: AddressConstants.Zero,
     [ChainId.Ropsten]: AddressConstants.Zero,
@@ -24,6 +25,7 @@ export const ContractAddress = {
     [ChainId.PolygonMumbai]: AddressConstants.Zero,
   },
   Deployer: {
+    [ChainId.Local]: AddressConstants.Zero,
     [ChainId.Ethereum]: AddressConstants.Zero,
     [ChainId.Rinkeby]: AddressConstants.Zero,
     [ChainId.Ropsten]: AddressConstants.Zero,
