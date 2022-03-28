@@ -175,7 +175,7 @@ describe("ImplDeployer", async () => {
       });
 
       it("should clone TradeTrustERC721Impl", async () => {
-        const interfaceId = contractInterfaceId.ITradeTrustERC721;
+        const interfaceId = contractInterfaceId.TradeTrustERC721;
 
         const res = await clonedRegistryContract.supportsInterface(interfaceId);
 
