@@ -13,7 +13,7 @@ abstract contract TradeTrustTokenBurnable is TradeTrustSBT, RegistryAccess, ITra
   /**
    * @dev Internal constant for the burn address.
    */
-  address internal constant BURN_ADDRESS = 0x000000000000000000000000000000000000dEaD;
+  address internal constant BURN_ADDRESS = 0x00000000000000000000000000000000000000000000dead;
 
   /**
    * @dev See {ERC165Upgradeable-supportsInterface}.
